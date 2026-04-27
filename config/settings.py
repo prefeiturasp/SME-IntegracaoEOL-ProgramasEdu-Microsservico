@@ -1,4 +1,8 @@
-"""Configuracoes Django do SME-SGP-MS-Professores (mock)."""
+"""Configurações Django do SME-IntegracaoEOL-ProgramasEdu-Microsservico.
+
+Microsserviço de leitura do domínio Programas Educacionais (PAP/PAEE).
+Lê do banco programas_db, populado pelo SME-IntegracaoEOL-MS-ETL.
+"""
 
 import os
 import urllib.parse
@@ -47,7 +51,7 @@ if not SECRET_KEY:
         raise ImproperlyConfigured(
             "A variável DJANGO_SECRET_KEY é obrigatória em produção."
         )
-    SECRET_KEY = os.getenv("HOSTNAME", "dev-secret-key-programas-mock")
+    SECRET_KEY = os.getenv("HOSTNAME", "dev-secret-key-programas")
 
 DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
 ALLOWED_HOSTS = [
@@ -97,10 +101,10 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
-URL_BANCO_PROFESSORES = os.getenv("URL_BANCO_PROFESSORES")
+URL_BANCO_PROGRAMAS = os.getenv("URL_BANCO_PROGRAMAS")
 
 DATABASES = {
-    "default": _parse_db_url(URL_BANCO_PROFESSORES),
+    "default": _parse_db_url(URL_BANCO_PROGRAMAS),
 }
 
 AUTH_PASSWORD_VALIDATORS: list[dict[str, object]] = []
@@ -115,7 +119,7 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 NOME_APLICACAO = os.getenv(
-    "NOME_APLICACAO", "SME-SGP-MS-Programas"
+    "NOME_APLICACAO", "SME-IntegracaoEOL-ProgramasEdu-Microsservico"
 )
 AMBIENTE_APLICACAO = os.getenv("AMBIENTE_APLICACAO", "local")
 NIVEL_LOG = os.getenv("NIVEL_LOG", "INFO")
@@ -134,10 +138,15 @@ REST_FRAMEWORK = {
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "SME-SGP-MS-Programas API (mock)",
+    "TITLE": "SME-IntegracaoEOL-ProgramasEdu-Microsservico API",
     "DESCRIPTION": (
-        "Mock dos endpoints do domínio Programas — SGP EOL.\n\n"
-        "Todos os endpoints retornam dados estáticos sem lógica de negócio."
+        "Endpoints de leitura do domínio Programas Educacionais "
+        "(PAP/PAEE).\n\n"
+        "Substituem os endpoints legados do Pedagogico-API que hoje "
+        "consultam o EOL/Elastic. Os dados vêm de programas_db, "
+        "populado pelo SME-IntegracaoEOL-MS-ETL.\n\n"
+        "Consumido pelo Transition Gateway, que agrega dados deste "
+        "microsserviço com os domínios Alunos e Pedagógico."
     ),
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
