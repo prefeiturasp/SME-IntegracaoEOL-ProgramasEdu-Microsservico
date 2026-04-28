@@ -96,7 +96,7 @@ class DadosSrmPaeeColaborativoSerializer(serializers.Serializer):
     codigoComponente = serializers.IntegerField(source="codigo_componente")
     codigoAluno = serializers.IntegerField(source="codigo_aluno")
     situacaoMatricula = serializers.CharField(source="situacao_matricula")
-    dataMatricula = serializers.DateTimeField(source="data_matricula")
+    dataMatricula = serializers.DateField(source="data_matricula")
 
 
 class TurmasProgramaRequestSerializer(serializers.Serializer):
