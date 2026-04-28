@@ -22,11 +22,20 @@ apps/programas/
 │   ├── serializers.py    # 7 serializers DRF (camelCase do legado)
 │   ├── urls.py           # 8 paths (EP-01 a EP-08)
 │   └── views.py          # 8 APIView
+├── management/
+│   └── commands/
 ├── tests/
+│   ├── helpers.py
+│   ├── test_api.py
+│   ├── test_models.py
+│   └── test_services.py
 ├── apps.py
 ├── enums.py              # CategoriaPrograma, SituacaoTurma, SituacaoMatricula
+│                         # + SITUACOES_MATRICULA_VALIDAS, SITUACOES_TURMA_ATIVAS
+│                         # + CODIGO_COMPONENTE_PAEE_SRM = 1030
 ├── models.py             # 5 models read-only (managed=False)
-└── services.py           # Funções de query (uma por endpoint)
+└── services.py           # 7 DTOs frozen (dataclass) + funções de query por endpoint
+                          # EP-04/EP-05: variante list_ (DRF) + iter_ (streaming)
 ```
 
 Tabelas lidas em `programas_db`:
@@ -38,6 +47,35 @@ Tabelas lidas em `programas_db`:
 | `TurmaPrograma` | `turma_programa` |
 | `TurmaProgramaComponenteCurricular` | `turma_programa_componente_curricular` |
 | `MatriculaTurmaPrograma` | `matricula_turma_programa` |
+
+---
+
+## Variáveis de ambiente
+
+Copie `.env.example` para `.env` e ajuste conforme o ambiente:
+
+| Variável | Padrão | Descrição |
+|---|---|---|
+| `DJANGO_SECRET_KEY` | _(obrigatória em produção)_ | Chave secreta do Django |
+| `DJANGO_DEBUG` | `1` | `1` = debug on, `0` = produção |
+| `DJANGO_ALLOWED_HOSTS` | `*` | Hosts permitidos (vírgula separado) |
+| `API_KEY` | `dev-key-default` | Chave usada no header de autenticação |
+| `API_KEY_HEADER` | `X-API-Key` | Nome do header de autenticação |
+| `URL_BANCO_PROGRAMAS` | _(ver abaixo)_ | DSN Postgres do `programas_db` |
+| `DB_POOL_SIZE` | `5` | Tamanho do pool de conexões (`dj_db_conn_pool`) |
+| `PORT_WEB` | `8001` | Porta do servidor web no Docker |
+| `PORT_DEBUGPY` | `5678` | Porta do debugger remoto (debugpy) |
+| `NIVEL_LOG` | `INFO` | Nível de log (`DEBUG`, `INFO`, `WARNING`, …) |
+| `AMBIENTE_APLICACAO` | `local` | Identificador de ambiente nos logs |
+
+`URL_BANCO_PROGRAMAS` padrão (aponta para o container do MS-ETL):
+```
+postgresql://postgres:postgres@sme_sgp_ms_etl_postgres:5432/programas_db
+```
+
+> O banco usa **connection pooling** via `dj_db_conn_pool` com
+> `POOL_SIZE=DB_POOL_SIZE`, `MAX_OVERFLOW=0`, `POOL_RECYCLE=1800s` e
+> `PRE_PING=True`.
 
 ---
 
@@ -168,6 +206,6 @@ normalmente.
 
 ## Referências
 
-- Contrato/queries: `../SME-IntegracaoEOL-MS-ETL/CLAUDE.md`
+- Endpoints originais: `SME-Pedagogico-API-master` — `AlunoController.cs` e `TurmaController.cs`
   (seção "Endpoints do Pedagogico-API legado a substituir").
 - Models de origem: `../SME-IntegracaoEOL-MS-ETL/apps/programas/models.py`.

@@ -1,7 +1,7 @@
 """Services do domínio Programas — queries de leitura no programas_db.
 
 Uma função por endpoint do contrato legado (EP-01 a EP-08), traduzindo
-as queries Postgres documentadas no CLAUDE.md do MS-ETL para o ORM
+as queries Postgres documentadas no Pedagogico do MS-ETL para o ORM
 Django. Cada função retorna dataclasses imutáveis, desacoplando a
 camada de transporte (serializers/views) da camada de persistência.
 
