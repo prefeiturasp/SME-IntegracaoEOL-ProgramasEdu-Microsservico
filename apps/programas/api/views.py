@@ -8,6 +8,11 @@ EP-01 retorna shape reduzido — campos de aluno/pedagógico ausentes
 são agregados pelo Transition Gateway.
 """
 
+import json
+from collections.abc import Iterable, Iterator
+from typing import Any
+
+from django.http import StreamingHttpResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.request import Request
@@ -39,6 +44,24 @@ def _to_int(valor: str, nome_param: str) -> int:
             f"Parâmetro '{nome_param}' deve ser um inteiro válido: "
             f"recebido {valor!r}."
         ) from exc
+
+
+def _stream_json_array(items: Iterable[dict[str, Any]]) -> Iterator[bytes]:
+    """Serializa um iterable como array JSON em chunks de bytes.
+
+    Mantém o mesmo shape do contrato legado (``[{...}, {...}]``) mas sem
+    materializar a lista inteira em memória — cada item vai pro socket
+    assim que sai do cursor do banco.
+    """
+    yield b"["
+    primeiro = True
+    for item in items:
+        if primeiro:
+            primeiro = False
+        else:
+            yield b","
+        yield json.dumps(item, default=str).encode("utf-8")
+    yield b"]"
 
 
 # ---------------------------------------------------------------------------
@@ -168,23 +191,31 @@ class VerificarSeAlunosSaoTurmaProgramaPapView(APIView):
 # EP-04 — GET /pap/ano-corrente
 # ---------------------------------------------------------------------------
 class ObterAlunosPapAnoCorrenteView(APIView):
-    """EP-04 — Listar alunos PAP do ano corrente."""
+    """EP-04 — Listar alunos PAP do ano corrente.
+
+    Resposta entregue via ``StreamingHttpResponse``: o cursor do banco é
+    drenado em chunks (``.iterator(chunk_size=2000)``) e cada item vai
+    direto pro socket — nunca há a lista inteira em memória nem custo
+    de DRF Serializer por linha. Shape do JSON é idêntico ao legado.
+    """
 
     @extend_schema(
         tags=_TAG_PAP,
         summary="EP-04 | Listar alunos PAP do ano corrente",
         responses={200: AlunoTurmaPapSerializer(many=True)},
     )
-    def get(self, request: Request) -> Response:
-        dados = services.listar_alunos_pap_ano_corrente()
-        return Response(AlunoTurmaPapSerializer(dados, many=True).data)
+    def get(self, request: Request) -> StreamingHttpResponse:
+        return StreamingHttpResponse(
+            _stream_json_array(services.iter_alunos_pap_ano_corrente()),
+            content_type="application/json",
+        )
 
 
 # ---------------------------------------------------------------------------
 # EP-05 — GET /pap/ano-letivo/{anoLetivo}
 # ---------------------------------------------------------------------------
 class ObterAlunosPapPorAnoLetivoView(APIView):
-    """EP-05 — Listar alunos PAP por ano letivo."""
+    """EP-05 — Listar alunos PAP por ano letivo (streaming, ver EP-04)."""
 
     @extend_schema(
         tags=_TAG_PAP,
@@ -194,7 +225,9 @@ class ObterAlunosPapPorAnoLetivoView(APIView):
         ],
         responses={200: AlunoTurmaPapSerializer(many=True)},
     )
-    def get(self, request: Request, anoLetivo: str) -> Response:
+    def get(
+        self, request: Request, anoLetivo: str
+    ) -> StreamingHttpResponse | Response:
         try:
             ano = _to_int(anoLetivo, "anoLetivo")
         except ValueError as exc:
@@ -202,8 +235,10 @@ class ObterAlunosPapPorAnoLetivoView(APIView):
                 {"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        dados = services.listar_alunos_pap_por_ano(ano_letivo=ano)
-        return Response(AlunoTurmaPapSerializer(dados, many=True).data)
+        return StreamingHttpResponse(
+            _stream_json_array(services.iter_alunos_pap_por_ano(ano_letivo=ano)),
+            content_type="application/json",
+        )
 
 
 # ---------------------------------------------------------------------------

@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
+from typing import Any
 from unittest.mock import patch
 
+from django.http import StreamingHttpResponse
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
@@ -20,6 +23,13 @@ def _autenticado() -> APIClient:
     cliente = APIClient()
     cliente.credentials(HTTP_X_API_KEY="test-api-key")
     return cliente
+
+
+def _body_json(resp: Any) -> Any:
+    """resp.json() falha em StreamingHttpResponse — drena os chunks à mão."""
+    if isinstance(resp, StreamingHttpResponse):
+        return json.loads(b"".join(resp.streaming_content).decode("utf-8"))
+    return resp.json()
 
 
 class AutenticacaoTestCase(TestCase):
@@ -149,7 +159,7 @@ class EP04AlunosPapAnoCorrenteTestCase(TestCase):
             url = reverse("obter-alunos-pap-ano-corrente")
             resp = cliente.get(url)
         self.assertEqual(resp.status_code, 200)
-        body = resp.json()
+        body = _body_json(resp)
         self.assertEqual(len(body), 1)
         self.assertEqual(body[0]["anoLetivo"], 2026)
         self.assertEqual(body[0]["componenteCurricularId"], 1770)
@@ -165,7 +175,7 @@ class EP05AlunosPapPorAnoLetivoTestCase(TestCase):
         )
         resp = cliente.get(url)
         self.assertEqual(resp.status_code, 200)
-        body = resp.json()
+        body = _body_json(resp)
         self.assertEqual(len(body), 1)
         self.assertEqual(body[0]["codigoAluno"], 6730137)
 

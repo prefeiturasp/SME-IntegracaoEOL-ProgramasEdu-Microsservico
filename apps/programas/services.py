@@ -12,11 +12,12 @@ cicloEnsino — pertencentes ao Pedagógico) ficam de fora e são
 agregados pelo Transition Gateway.
 """
 
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
 
+from django.db.models import F, QuerySet
 from django.utils import timezone
 
 from apps.programas.enums import (
@@ -281,20 +282,47 @@ def _consultar_alunos_pap(
     situacoes_matricula: Sequence[int],
     situacoes_turma: Sequence[str],
 ) -> list[AlunoTurmaPapDTO]:
-    """Helper compartilhado entre EP-04 e EP-05."""
-    componentes_pap_vigentes = list(
+    """Helper compartilhado entre EP-04 e EP-05 (caminho dataclass)."""
+    qs = _query_alunos_pap_snake(
+        ano_letivo=ano_letivo,
+        situacoes_matricula=situacoes_matricula,
+        situacoes_turma=situacoes_turma,
+    )
+    return [
+        AlunoTurmaPapDTO(
+            ano_letivo=linha["ano_letivo"],
+            codigo_turma=linha["codigo_turma"],
+            codigo_ue=linha["codigo_ue"],
+            codigo_dre=linha["codigo_dre"],
+            codigo_aluno=linha["codigo_aluno"],
+            componente_curricular_id=linha["codigo_componente_curricular"],
+        )
+        for linha in qs
+    ]
+
+
+def _query_alunos_pap_snake(
+    ano_letivo: int,
+    situacoes_matricula: Sequence[int],
+    situacoes_turma: Sequence[str],
+) -> QuerySet[MatriculaTurmaPrograma]:
+    """Queryset base de alunos PAP com colunas em snake_case.
+
+    Usa subqueries (em vez de materializar listas em Python) para que o
+    Postgres execute IN (SELECT …) num único round-trip, evitando o
+    transporte de dezenas de milhares de IDs entre a aplicação e o banco.
+    """
+    componentes_pap_vigentes = (
         ComponenteCurricularPrograma.objects.filter(
             categoria=CategoriaPrograma.PAP,
             vigente=True,
-        ).values_list("codigo_componente_curricular", flat=True)
+        ).values("codigo_componente_curricular")
     )
-    turmas_ativas = list(
-        TurmaPrograma.objects.filter(
-            situacao__in=situacoes_turma,
-        ).values_list("codigo_turma", flat=True)
-    )
+    turmas_ativas = TurmaPrograma.objects.filter(
+        situacao__in=situacoes_turma,
+    ).values("codigo_turma")
 
-    qs = (
+    return (
         MatriculaTurmaPrograma.objects.filter(
             ano_letivo=ano_letivo,
             categoria=CategoriaPrograma.PAP,
@@ -312,17 +340,70 @@ def _consultar_alunos_pap(
         )
         .distinct()
     )
-    return [
-        AlunoTurmaPapDTO(
-            ano_letivo=linha["ano_letivo"],
-            codigo_turma=linha["codigo_turma"],
-            codigo_ue=linha["codigo_ue"],
-            codigo_dre=linha["codigo_dre"],
-            codigo_aluno=linha["codigo_aluno"],
-            componente_curricular_id=linha["codigo_componente_curricular"],
+
+
+def _query_alunos_pap_camel(
+    ano_letivo: int,
+    situacoes_matricula: Sequence[int],
+    situacoes_turma: Sequence[str],
+) -> QuerySet[MatriculaTurmaPrograma]:
+    """Mesma query, mas já com aliases em camelCase do contrato legado.
+
+    Evita uma passagem extra para renomear chaves em Python — o cursor
+    do banco já devolve dicts no shape final do JSON.
+    """
+    componentes_pap_vigentes = (
+        ComponenteCurricularPrograma.objects.filter(
+            categoria=CategoriaPrograma.PAP,
+            vigente=True,
+        ).values("codigo_componente_curricular")
+    )
+    turmas_ativas = TurmaPrograma.objects.filter(
+        situacao__in=situacoes_turma,
+    ).values("codigo_turma")
+
+    return (
+        MatriculaTurmaPrograma.objects.filter(
+            ano_letivo=ano_letivo,
+            categoria=CategoriaPrograma.PAP,
+            codigo_componente_curricular__in=componentes_pap_vigentes,
+            codigo_situacao_matricula__in=list(situacoes_matricula),
+            codigo_turma__in=turmas_ativas,
         )
-        for linha in qs
-    ]
+        .values(
+            anoLetivo=F("ano_letivo"),
+            codigoTurma=F("codigo_turma"),
+            codigoUe=F("codigo_ue"),
+            codigoDre=F("codigo_dre"),
+            codigoAluno=F("codigo_aluno"),
+            componenteCurricularId=F("codigo_componente_curricular"),
+        )
+        .distinct()
+    )
+
+
+def iter_alunos_pap_ano_corrente() -> Iterator[dict[str, Any]]:
+    """EP-04 streaming — yields dicts em camelCase chunk-a-chunk."""
+    ano_corrente = timezone.now().year
+    qs = _query_alunos_pap_camel(
+        ano_letivo=ano_corrente,
+        situacoes_matricula=(SituacaoMatricula.ATIVO,),
+        situacoes_turma=("O", "A", "C"),
+    )
+    yield from qs.iterator(chunk_size=2000)
+
+
+def iter_alunos_pap_por_ano(ano_letivo: int) -> Iterator[dict[str, Any]]:
+    """EP-05 streaming — yields dicts em camelCase chunk-a-chunk."""
+    qs = _query_alunos_pap_camel(
+        ano_letivo=ano_letivo,
+        situacoes_matricula=(
+            SituacaoMatricula.ATIVO,
+            SituacaoMatricula.CONCLUIDO,
+        ),
+        situacoes_turma=("O", "A", "C"),
+    )
+    yield from qs.iterator(chunk_size=2000)
 
 
 # ---------------------------------------------------------------------------
