@@ -13,6 +13,8 @@ from apps.programas.models import (
     TurmaPrograma,
 )
 
+NOME_PROJETO_COLABORATIVO = "PAP PROJETO COLABORATIVO"
+
 
 def agora() -> datetime:
     """Datetime fixo usado em ``criado_em`` / ``atualizado_em``."""
@@ -29,7 +31,7 @@ def seed_componentes() -> None:
     )
     ComponenteCurricularPrograma.objects.create(
         codigo_componente_curricular=1770,
-        nome_componente_curricular="PAP PROJETO COLABORATIVO",
+        nome_componente_curricular=NOME_PROJETO_COLABORATIVO,
         categoria=CategoriaPrograma.PAP,
         vigente=True,
     )
@@ -124,7 +126,7 @@ def seed_matriculas() -> list[MatriculaTurmaPrograma]:
             codigo_aluno=6730137,
             codigo_turma=3082743,
             codigo_componente_curricular=1770,
-            nome_componente_curricular="PAP PROJETO COLABORATIVO",
+            nome_componente_curricular=NOME_PROJETO_COLABORATIVO,
             codigo_situacao_matricula=1,
             descricao_situacao_matricula="Ativo",
             data_matricula=date(2026, 2, 1),
@@ -157,7 +159,7 @@ def seed_matriculas() -> list[MatriculaTurmaPrograma]:
         codigo_aluno=6730137,
         codigo_turma=3082743,
         codigo_componente_curricular=1770,
-        nome_componente_curricular="PAP PROJETO COLABORATIVO",
+        nome_componente_curricular=NOME_PROJETO_COLABORATIVO,
         codigo_situacao_matricula=1,
         descricao_situacao_matricula="Ativo",
         data_matricula=date(2026, 2, 1),
