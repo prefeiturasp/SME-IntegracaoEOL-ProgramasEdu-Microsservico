@@ -5,6 +5,7 @@ Lê do banco programas_db, populado pelo SME-IntegracaoEOL-MS-ETL.
 """
 
 import os
+import sys
 import urllib.parse
 from pathlib import Path
 from typing import Any
@@ -104,6 +105,21 @@ DATABASES = {
     "default": _parse_db_url(URL_BANCO_PROGRAMAS),
 }
 
+# Em modo teste os models do app programas (managed=False em produção,
+# DDL no MS-ETL) precisam de um banco onde o schema possa ser criado.
+# O ProgramasTestRunner promove os models a managed antes do
+# setup_databases — ver config/test_runner.py.
+MODO_TESTE = "test" in sys.argv or os.environ.get(
+    "USE_SQLITE_TEST", "False"
+).lower() in ("true", "1")
+if MODO_TESTE:
+    DATABASES["default"] = {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": ":memory:",
+    }
+
+TEST_RUNNER = "config.test_runner.ProgramasTestRunner"
+
 AUTH_PASSWORD_VALIDATORS: list[dict[str, object]] = []
 
 LANGUAGE_CODE = "pt-br"
@@ -118,7 +134,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 NIVEL_LOG = os.environ.get("NIVEL_LOG", "INFO")
 
 API_KEY_HEADER = os.environ.get("API_KEY_HEADER", "X-API-Key")
-API_KEY = os.environ.get("API_KEY", "dev-key-default")
+API_KEY = "test-api-key" if MODO_TESTE else os.environ.get(
+    "API_KEY", "dev-key-default"
+)
 
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
