@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from unittest.mock import patch
 
 from django.test import TestCase
@@ -143,7 +143,7 @@ class ListarAlunosPapAnoCorrenteTestCase(TestCase):
         seed_matriculas()
         with patch(
             "apps.programas.services.timezone.now",
-            return_value=datetime(2026, 5, 1, tzinfo=timezone.utc),
+            return_value=datetime(2026, 5, 1, tzinfo=UTC),
         ):
             resultado = services.listar_alunos_pap_ano_corrente()
         self.assertEqual(len(resultado), 1)
@@ -154,7 +154,7 @@ class ListarAlunosPapAnoCorrenteTestCase(TestCase):
         seed_matriculas()
         with patch(
             "apps.programas.services.timezone.now",
-            return_value=datetime(2030, 1, 1, tzinfo=timezone.utc),
+            return_value=datetime(2030, 1, 1, tzinfo=UTC),
         ):
             resultado = services.listar_alunos_pap_ano_corrente()
         self.assertEqual(resultado, [])
@@ -163,12 +163,25 @@ class ListarAlunosPapAnoCorrenteTestCase(TestCase):
 class ListarAlunosPapPorAnoTestCase(TestCase):
     def test_retorna_alunos_pap_do_ano(self) -> None:
         seed_matriculas()
-        resultado = services.listar_alunos_pap_por_ano(ano_letivo=2026)
+        with patch(
+            "apps.programas.services.timezone.now",
+            return_value=datetime(2030, 1, 1, tzinfo=UTC),
+        ):
+            resultado = services.listar_alunos_pap_por_ano(ano_letivo=2026)
         self.assertEqual(len(resultado), 1)
         self.assertEqual(resultado[0].codigo_aluno, 6730137)
         self.assertEqual(resultado[0].codigo_ue, "019660")
         self.assertEqual(resultado[0].codigo_dre, "108400")
         self.assertEqual(resultado[0].componente_curricular_id, 1770)
+
+    def test_ano_corrente_retorna_vazio(self) -> None:
+        seed_matriculas()
+        with patch(
+            "apps.programas.services.timezone.now",
+            return_value=datetime(2026, 5, 1, tzinfo=UTC),
+        ):
+            resultado = services.listar_alunos_pap_por_ano(ano_letivo=2026)
+        self.assertEqual(resultado, [])
 
 
 class ListarComponentesTurmasAlunoTestCase(TestCase):
@@ -212,9 +225,7 @@ class FiltrarCodigosQueSaoTurmaProgramaTestCase(TestCase):
 
     def test_lista_vazia_retorna_vazio(self) -> None:
         self.assertEqual(
-            services.filtrar_codigos_que_sao_turma_programa(
-                codigos_turmas=[]
-            ),
+            services.filtrar_codigos_que_sao_turma_programa(codigos_turmas=[]),
             [],
         )
 

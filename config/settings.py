@@ -9,11 +9,19 @@ import urllib.parse
 from pathlib import Path
 from typing import Any
 
-from django.core.exceptions import ImproperlyConfigured
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-DB_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "5"))
+SECRET_KEY = os.environ.get(
+    "DJANGO_SECRET_KEY", "dev-secret-not-for-production"
+)
+DEBUG = os.environ.get("DJANGO_DEBUG", "True").lower() in ("true", "1")
+
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get("DJANGO_ALLOWED_HOSTS", "*").split(",")
+]
+
+DB_POOL_SIZE = int(os.environ.get("DB_POOL_SIZE", "5"))
 _POOL_OPTIONS = {
     "POOL_SIZE": DB_POOL_SIZE,
     "MAX_OVERFLOW": 0,
@@ -45,20 +53,6 @@ def _parse_db_url(url: Any) -> dict:
         "POOL_OPTIONS": _POOL_OPTIONS,
     }
 
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
-if not SECRET_KEY:
-    if os.getenv("DJANGO_DEBUG", "1") == "0":
-        raise ImproperlyConfigured(
-            "A variável DJANGO_SECRET_KEY é obrigatória em produção."
-        )
-    raise ImproperlyConfigured(
-        "A variável DJANGO_SECRET_KEY é obrigatória."
-    )
-
-DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
-ALLOWED_HOSTS = [
-    host.strip() for host in os.getenv("DJANGO_ALLOWED_HOSTS", "*").split(",")
-]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -74,6 +68,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "django.middleware.gzip.GZipMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -103,7 +98,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
-URL_BANCO_PROGRAMAS = os.getenv("URL_BANCO_PROGRAMAS")
+URL_BANCO_PROGRAMAS = os.environ.get("URL_BANCO_PROGRAMAS")
 
 DATABASES = {
     "default": _parse_db_url(URL_BANCO_PROGRAMAS),
@@ -120,14 +115,10 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-NOME_APLICACAO = os.getenv(
-    "NOME_APLICACAO", "SME-IntegracaoEOL-ProgramasEdu-Microsservico"
-)
-AMBIENTE_APLICACAO = os.getenv("AMBIENTE_APLICACAO", "local")
-NIVEL_LOG = os.getenv("NIVEL_LOG", "INFO")
+NIVEL_LOG = os.environ.get("NIVEL_LOG", "INFO")
 
-API_KEY = os.getenv("API_KEY", "dev-key-default")
-API_KEY_HEADER = os.getenv("API_KEY_HEADER", "X-API-Key")
+API_KEY_HEADER = os.environ.get("API_KEY_HEADER", "X-API-Key")
+API_KEY = os.environ.get("API_KEY", "dev-key-default")
 
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",

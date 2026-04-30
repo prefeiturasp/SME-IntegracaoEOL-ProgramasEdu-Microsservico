@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 from apps.programas.enums import CategoriaPrograma
 from apps.programas.models import (
     ComponenteCurricularPrograma,
     MatriculaTurmaPrograma,
+    MatriculaTurmaProgramaHistorico,
     TipoPrograma,
     TurmaPrograma,
 )
@@ -15,10 +16,11 @@ from apps.programas.models import (
 
 def agora() -> datetime:
     """Datetime fixo usado em ``criado_em`` / ``atualizado_em``."""
-    return datetime(2026, 4, 1, tzinfo=timezone.utc)
+    return datetime(2026, 4, 1, tzinfo=UTC)
 
 
 def seed_componentes() -> None:
+    """Cria componentes curriculares PAP e PAEE para os testes."""
     ComponenteCurricularPrograma.objects.create(
         codigo_componente_curricular=1322,
         nome_componente_curricular="PAP - RECUPERACAO DE APRENDIZAGENS",
@@ -46,6 +48,7 @@ def seed_componentes() -> None:
 
 
 def seed_tipos() -> None:
+    """Cria tipos de programa PAP e PAEE para os testes."""
     TipoPrograma.objects.create(
         codigo_tipo_programa=649,
         nome="PAP Recuperação",
@@ -61,6 +64,8 @@ def seed_tipos() -> None:
 
 
 def seed_turmas() -> dict[int, TurmaPrograma]:
+    """Cria turmas PAP e PAEE de teste e retorna
+    um dict indexado por codigo_turma."""
     turmas: dict[int, TurmaPrograma] = {}
     turmas[3082743] = TurmaPrograma.objects.create(
         codigo_turma=3082743,
@@ -111,6 +116,7 @@ def seed_turmas() -> dict[int, TurmaPrograma]:
 
 
 def seed_matriculas() -> list[MatriculaTurmaPrograma]:
+    """Cria componentes, turmas e matrículas de programa para os testes."""
     seed_componentes()
     seed_turmas()
     matriculas: list[MatriculaTurmaPrograma] = [
@@ -147,4 +153,20 @@ def seed_matriculas() -> list[MatriculaTurmaPrograma]:
             atualizado_em=agora(),
         ),
     ]
+    MatriculaTurmaProgramaHistorico.objects.create(
+        codigo_aluno=6730137,
+        codigo_turma=3082743,
+        codigo_componente_curricular=1770,
+        nome_componente_curricular="PAP PROJETO COLABORATIVO",
+        codigo_situacao_matricula=1,
+        descricao_situacao_matricula="Ativo",
+        data_matricula=date(2026, 2, 1),
+        data_situacao=date(2026, 2, 1),
+        ano_letivo=2026,
+        codigo_ue="019660",
+        codigo_dre="108400",
+        categoria=CategoriaPrograma.PAP,
+        criado_em=agora(),
+        atualizado_em=agora(),
+    )
     return matriculas

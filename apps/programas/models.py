@@ -13,6 +13,9 @@ Hierarquia (espelha o MS-ETL):
 
     ComponenteCurricularPrograma   (configuração — substitui constantes
                                     hardcoded do Pedagogico-API legado)
+
+    MatriculaTurmaProgramaHistorico (lida de v_historico_matricula_cotic
+                                     pelo ETL — usada no EP-05)
 """
 
 from django.db import models
@@ -77,12 +80,8 @@ class TurmaPrograma(models.Model):
     codigo_dre = models.CharField(max_length=20)
     ano_letivo = models.SmallIntegerField()
     tipo_turno = models.SmallIntegerField(null=True, blank=True)
-    descricao_turno = models.CharField(
-        max_length=100, blank=True, default=""
-    )
-    descricao_grade = models.CharField(
-        max_length=200, null=True, blank=True
-    )
+    descricao_turno = models.CharField(max_length=100, blank=True, default="")
+    descricao_grade = models.CharField(max_length=200, null=True, blank=True)
     situacao = models.CharField(max_length=1)
     codigo_tipo_programa = models.IntegerField(null=True, blank=True)
     categoria = models.CharField(
@@ -159,4 +158,46 @@ class MatriculaTurmaPrograma(models.Model):
             f"Aluno {self.codigo_aluno}"
             f" — turma {self.codigo_turma}"
             f" / CC {self.codigo_componente_curricular}"
+        )
+
+
+class MatriculaTurmaProgramaHistorico(models.Model):
+    """Matrículas históricas de alunos em turmas de programa, por componente.
+
+    Espelha MatriculaTurmaPrograma, mas é populada pelo ETL a partir de
+    ``v_historico_matricula_cotic``. Usada no EP-05
+    (pap/ano-letivo/{anoLetivo}) para retornar dados coerentes com o legado.
+    """
+
+    codigo_aluno = models.BigIntegerField()
+    codigo_turma = models.BigIntegerField()
+    codigo_componente_curricular = models.BigIntegerField()
+    nome_componente_curricular = models.CharField(max_length=200)
+    codigo_situacao_matricula = models.SmallIntegerField()
+    descricao_situacao_matricula = models.CharField(max_length=50)
+    data_matricula = models.DateField(null=True, blank=True)
+    data_situacao = models.DateField(null=True, blank=True)
+    ano_letivo = models.SmallIntegerField()
+    codigo_ue = models.CharField(max_length=20)
+    codigo_dre = models.CharField(max_length=20)
+    categoria = models.CharField(
+        max_length=10,
+        choices=CategoriaPrograma.choices,
+    )
+    criado_em = models.DateTimeField()
+    atualizado_em = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        app_label = "programas"
+        db_table = "matricula_turma_programa_historico"
+        managed = False
+        verbose_name = "matrícula histórica em turma de programa"
+        verbose_name_plural = "matrículas históricas em turmas de programa"
+
+    def __str__(self) -> str:
+        return (
+            f"Aluno {self.codigo_aluno}"
+            f" — turma {self.codigo_turma}"
+            f" / CC {self.codigo_componente_curricular}"
+            f" (histórico)"
         )

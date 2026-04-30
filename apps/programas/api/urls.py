@@ -3,14 +3,14 @@
 Os paths replicam o contrato dos endpoints legados do
 SME-Pedagogico-API:
 
-    GET  /api/alunos/paee/turma-srm-e-regular/aluno/{codigoAluno}
-    GET  /api/alunos/turmas-pap/{anoLetivo}/ues/{codigoEscola}
-    GET  /api/alunos/alunos-pap/{anoLetivo}
-    GET  /api/alunos/pap/ano-corrente
-    GET  /api/alunos/pap/ano-letivo/{anoLetivo}
-    GET  /api/alunos/{codigoAluno}/turmas-programa/{anoLetivo}/componentes-curriculares
-    GET  /api/alunos/srm-paee/aluno/{codigoAluno}
-    POST /api/turmas/turmas-programa
+GET  /api/alunos/paee/turma-srm-e-regular/aluno/{codigoAluno}
+GET  /api/alunos/turmas-pap/{anoLetivo}/ues/{codigoEscola}
+GET  /api/alunos/alunos-pap/{anoLetivo}
+GET  /api/alunos/pap/ano-corrente
+GET  /api/alunos/pap/ano-letivo/{anoLetivo}
+GET  /api/alunos/{codigoAluno}/turmas-programa/{anoLetivo}/componentes-curriculares
+GET  /api/alunos/srm-paee/aluno/{codigoAluno}
+POST /api/turmas/turmas-programa
 
 Os 7 primeiros endpoints (do AlunoController do legado) ficam sob
 ``alunos/``; o EP-08 (do TurmaController) fica sob ``turmas/``.
@@ -23,9 +23,9 @@ from apps.programas.api.views import (
     ObterAlunosPapPorAnoLetivoView,
     ObterComponentesCurricularesTurmasProgramaAlunoView,
     ObterDadosSrmPaeeColaborativoView,
-    ObterTurmaSrmERegularDoAlunoView,
     ObterTurmasPapView,
     ObterTurmasProgramaView,
+    ObterTurmaSrmERegularDoAlunoView,
     VerificarSeAlunosSaoTurmaProgramaPapView,
 )
 

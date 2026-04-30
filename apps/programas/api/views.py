@@ -26,8 +26,8 @@ from apps.programas.api.serializers import (
     ComponenteTurmaProgramaAlunoSerializer,
     DadosSrmPaeeColaborativoSerializer,
     TurmaPapResumoSerializer,
-    TurmaSrmRegularDoAlunoSerializer,
     TurmasProgramaRequestSerializer,
+    TurmaSrmRegularDoAlunoSerializer,
 )
 
 _TAG_PAP = ["Programas — PAP"]
@@ -36,7 +36,8 @@ _TAG_TURMAS = ["Programas — Turmas"]
 
 
 def _to_int(valor: str, nome_param: str) -> int:
-    """Converte path param para int ou retorna ValueError com contexto."""
+    """Faz a conversão do path param para int ou retorna
+    ValueError com contexto."""
     try:
         return int(valor)
     except (TypeError, ValueError) as exc:
@@ -182,9 +183,7 @@ class VerificarSeAlunosSaoTurmaProgramaPapView(APIView):
         dados = services.verificar_alunos_em_turma_pap(
             ano_letivo=ano, codigos_alunos=codigos
         )
-        return Response(
-            AlunoTurmaProgramaPapSerializer(dados, many=True).data
-        )
+        return Response(AlunoTurmaProgramaPapSerializer(dados, many=True).data)
 
 
 # ---------------------------------------------------------------------------
@@ -236,14 +235,17 @@ class ObterAlunosPapPorAnoLetivoView(APIView):
             )
 
         return StreamingHttpResponse(
-            _stream_json_array(services.iter_alunos_pap_por_ano(ano_letivo=ano)),
+            _stream_json_array(
+                services.iter_alunos_pap_por_ano(ano_letivo=ano)
+            ),
             content_type="application/json",
         )
 
 
-# ---------------------------------------------------------------------------
-# EP-06 — GET /{codigoAluno}/turmas-programa/{anoLetivo}/componentes-curriculares
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------
+# EP-06 — GET
+# /{codigoAluno}/turmas-programa/{anoLetivo}/componentes-curriculares
+# -------------------------------------------------------------------
 class ObterComponentesCurricularesTurmasProgramaAlunoView(APIView):
     """EP-06 — Componentes curriculares das turmas de programa do aluno."""
 

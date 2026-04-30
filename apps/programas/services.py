@@ -30,9 +30,9 @@ from apps.programas.enums import (
 from apps.programas.models import (
     ComponenteCurricularPrograma,
     MatriculaTurmaPrograma,
+    MatriculaTurmaProgramaHistorico,
     TurmaPrograma,
 )
-
 
 # ---------------------------------------------------------------------------
 # DTOs de saída (1 por endpoint)
@@ -158,9 +158,7 @@ def obter_turmas_paee_do_aluno(
                 codigo_turma=linha["codigo_turma"],
                 ano_letivo=linha["ano_letivo"],
                 tipo_turno=turma.get("tipo_turno"),
-                codigo_situacao_matricula=(
-                    linha["codigo_situacao_matricula"]
-                ),
+                codigo_situacao_matricula=(linha["codigo_situacao_matricula"]),
                 situacao_matricula=linha["descricao_situacao_matricula"],
                 data_situacao=linha["data_situacao"],
                 turma_nome=turma.get("nome_turma", ""),
@@ -216,27 +214,22 @@ def verificar_alunos_em_turma_pap(
     if not codigos_alunos:
         return []
 
-    componentes_pap_vigentes = (
-        ComponenteCurricularPrograma.objects.filter(
-            categoria=CategoriaPrograma.PAP,
-            vigente=True,
-        ).values_list("codigo_componente_curricular", flat=True)
-    )
+    componentes_pap_vigentes = ComponenteCurricularPrograma.objects.filter(
+        categoria=CategoriaPrograma.PAP,
+        vigente=True,
+    ).values_list("codigo_componente_curricular", flat=True)
 
-    qs = (
-        MatriculaTurmaPrograma.objects.filter(
-            codigo_aluno__in=codigos_alunos,
-            ano_letivo=ano_letivo,
-            categoria=CategoriaPrograma.PAP,
-            codigo_componente_curricular__in=list(componentes_pap_vigentes),
-            codigo_situacao_matricula__in=SITUACOES_MATRICULA_VALIDAS,
-        )
-        .values(
-            "codigo_aluno",
-            "codigo_turma",
-            "codigo_componente_curricular",
-            "nome_componente_curricular",
-        )
+    qs = MatriculaTurmaPrograma.objects.filter(
+        codigo_aluno__in=codigos_alunos,
+        ano_letivo=ano_letivo,
+        categoria=CategoriaPrograma.PAP,
+        codigo_componente_curricular__in=list(componentes_pap_vigentes),
+        codigo_situacao_matricula__in=SITUACOES_MATRICULA_VALIDAS,
+    ).values(
+        "codigo_aluno",
+        "codigo_turma",
+        "codigo_componente_curricular",
+        "nome_componente_curricular",
     )
     return [
         AlunoTurmaProgramaPapDTO(
@@ -253,12 +246,13 @@ def verificar_alunos_em_turma_pap(
 # EP-04 — GET /pap/ano-corrente
 # ---------------------------------------------------------------------------
 def listar_alunos_pap_ano_corrente() -> list[AlunoTurmaPapDTO]:
-    """Lista alunos PAP do ano corrente."""
+    """Lista alunos PAP do ano corrente (tabela live)."""
     ano_corrente = timezone.now().year
     return _consultar_alunos_pap(
         ano_letivo=ano_corrente,
         situacoes_matricula=(SituacaoMatricula.ATIVO,),
         situacoes_turma=("O", "A", "C"),
+        historico=False,
     )
 
 
@@ -266,7 +260,16 @@ def listar_alunos_pap_ano_corrente() -> list[AlunoTurmaPapDTO]:
 # EP-05 — GET /pap/ano-letivo/{anoLetivo}
 # ---------------------------------------------------------------------------
 def listar_alunos_pap_por_ano(ano_letivo: int) -> list[AlunoTurmaPapDTO]:
-    """Lista alunos PAP por ano letivo."""
+    """Lista alunos PAP por ano letivo (tabela histórica).
+
+    Usa ``matricula_turma_programa_historico`` (carregada de
+    ``v_historico_matricula_cotic``) para retornar dados coerentes com
+    o legado — que também lia do histórico.
+
+    Retorna vazio para o ano corrente: dados live ficam no EP-04.
+    """
+    if ano_letivo >= timezone.now().year:
+        return []
     return _consultar_alunos_pap(
         ano_letivo=ano_letivo,
         situacoes_matricula=(
@@ -274,6 +277,7 @@ def listar_alunos_pap_por_ano(ano_letivo: int) -> list[AlunoTurmaPapDTO]:
             SituacaoMatricula.CONCLUIDO,
         ),
         situacoes_turma=("O", "A", "C"),
+        historico=True,
     )
 
 
@@ -281,12 +285,18 @@ def _consultar_alunos_pap(
     ano_letivo: int,
     situacoes_matricula: Sequence[int],
     situacoes_turma: Sequence[str],
+    historico: bool = False,
 ) -> list[AlunoTurmaPapDTO]:
-    """Helper compartilhado entre EP-04 e EP-05 (caminho dataclass)."""
+    """Um Helper compartilhado entre EP-04 e EP-05 (caminho dataclass).
+
+    Quando ``historico=True`` consulta ``matricula_turma_programa_historico``
+    (view histórica); caso contrário usa ``matricula_turma_programa`` (live).
+    """
     qs = _query_alunos_pap_snake(
         ano_letivo=ano_letivo,
         situacoes_matricula=situacoes_matricula,
         situacoes_turma=situacoes_turma,
+        historico=historico,
     )
     return [
         AlunoTurmaPapDTO(
@@ -305,25 +315,33 @@ def _query_alunos_pap_snake(
     ano_letivo: int,
     situacoes_matricula: Sequence[int],
     situacoes_turma: Sequence[str],
-) -> QuerySet[MatriculaTurmaPrograma]:
+    historico: bool = False,
+) -> QuerySet:
     """Queryset base de alunos PAP com colunas em snake_case.
 
     Usa subqueries (em vez de materializar listas em Python) para que o
     Postgres execute IN (SELECT …) num único round-trip, evitando o
     transporte de dezenas de milhares de IDs entre a aplicação e o banco.
+
+    Quando ``historico=True`` consulta ``MatriculaTurmaProgramaHistorico``
+    (carregada de ``v_historico_matricula_cotic``).
     """
-    componentes_pap_vigentes = (
-        ComponenteCurricularPrograma.objects.filter(
-            categoria=CategoriaPrograma.PAP,
-            vigente=True,
-        ).values("codigo_componente_curricular")
+    model = (
+        MatriculaTurmaProgramaHistorico
+        if historico
+        else MatriculaTurmaPrograma
     )
+
+    componentes_pap_vigentes = ComponenteCurricularPrograma.objects.filter(
+        categoria=CategoriaPrograma.PAP,
+        vigente=True,
+    ).values("codigo_componente_curricular")
     turmas_ativas = TurmaPrograma.objects.filter(
         situacao__in=situacoes_turma,
     ).values("codigo_turma")
 
     return (
-        MatriculaTurmaPrograma.objects.filter(
+        model.objects.filter(
             ano_letivo=ano_letivo,
             categoria=CategoriaPrograma.PAP,
             codigo_componente_curricular__in=componentes_pap_vigentes,
@@ -346,24 +364,32 @@ def _query_alunos_pap_camel(
     ano_letivo: int,
     situacoes_matricula: Sequence[int],
     situacoes_turma: Sequence[str],
-) -> QuerySet[MatriculaTurmaPrograma]:
+    historico: bool = False,
+) -> QuerySet:
     """Mesma query, mas já com aliases em camelCase do contrato legado.
 
     Evita uma passagem extra para renomear chaves em Python — o cursor
     do banco já devolve dicts no shape final do JSON.
+
+    Quando ``historico=True`` consulta ``MatriculaTurmaProgramaHistorico``
+    (carregada de ``v_historico_matricula_cotic``).
     """
-    componentes_pap_vigentes = (
-        ComponenteCurricularPrograma.objects.filter(
-            categoria=CategoriaPrograma.PAP,
-            vigente=True,
-        ).values("codigo_componente_curricular")
+    model = (
+        MatriculaTurmaProgramaHistorico
+        if historico
+        else MatriculaTurmaPrograma
     )
+
+    componentes_pap_vigentes = ComponenteCurricularPrograma.objects.filter(
+        categoria=CategoriaPrograma.PAP,
+        vigente=True,
+    ).values("codigo_componente_curricular")
     turmas_ativas = TurmaPrograma.objects.filter(
         situacao__in=situacoes_turma,
     ).values("codigo_turma")
 
     return (
-        MatriculaTurmaPrograma.objects.filter(
+        model.objects.filter(
             ano_letivo=ano_letivo,
             categoria=CategoriaPrograma.PAP,
             codigo_componente_curricular__in=componentes_pap_vigentes,
@@ -383,18 +409,26 @@ def _query_alunos_pap_camel(
 
 
 def iter_alunos_pap_ano_corrente() -> Iterator[dict[str, Any]]:
-    """EP-04 streaming — yields dicts em camelCase chunk-a-chunk."""
+    """EP-04 streaming — yields dicts em camelCase
+    chunk-a-chunk(tabela live)."""
     ano_corrente = timezone.now().year
     qs = _query_alunos_pap_camel(
         ano_letivo=ano_corrente,
         situacoes_matricula=(SituacaoMatricula.ATIVO,),
         situacoes_turma=("O", "A", "C"),
+        historico=False,
     )
     yield from qs.iterator(chunk_size=2000)
 
 
 def iter_alunos_pap_por_ano(ano_letivo: int) -> Iterator[dict[str, Any]]:
-    """EP-05 streaming — yields dicts em camelCase chunk-a-chunk."""
+    """EP-05 streaming — yields dicts em camelCase
+    chunk-a-chunk (tabela histórica).
+
+    Retorna vazio para o ano corrente: dados live ficam no EP-04.
+    """
+    if ano_letivo >= timezone.now().year:
+        return
     qs = _query_alunos_pap_camel(
         ano_letivo=ano_letivo,
         situacoes_matricula=(
@@ -402,12 +436,14 @@ def iter_alunos_pap_por_ano(ano_letivo: int) -> Iterator[dict[str, Any]]:
             SituacaoMatricula.CONCLUIDO,
         ),
         situacoes_turma=("O", "A", "C"),
+        historico=True,
     )
     yield from qs.iterator(chunk_size=2000)
 
 
 # ---------------------------------------------------------------------------
-# EP-06 — GET /{codigoAluno}/turmas-programa/{anoLetivo}/componentes-curriculares
+# EP-06 — GET
+# /{codigoAluno}/turmas-programa/{anoLetivo}/componentes-curriculares
 # ---------------------------------------------------------------------------
 def listar_componentes_turmas_aluno(
     codigo_aluno: int, ano_letivo: int

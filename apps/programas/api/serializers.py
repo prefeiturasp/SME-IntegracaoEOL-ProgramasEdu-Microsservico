@@ -10,6 +10,8 @@ etc.) e pedagógico (etapaEnsino, cicloEnsino) são responsabilidade de
 outros domínios e serão agregados pelo Transition Gateway.
 """
 
+from typing import Any
+
 from rest_framework import serializers
 
 
@@ -27,9 +29,7 @@ class TurmaSrmRegularDoAlunoSerializer(serializers.Serializer):
     codigoAluno = serializers.IntegerField(source="codigo_aluno")
     codigoTurma = serializers.IntegerField(source="codigo_turma")
     anoLetivo = serializers.IntegerField(source="ano_letivo")
-    tipoTurno = serializers.IntegerField(
-        source="tipo_turno", allow_null=True
-    )
+    tipoTurno = serializers.IntegerField(source="tipo_turno", allow_null=True)
     codigoSituacaoMatricula = serializers.IntegerField(
         source="codigo_situacao_matricula"
     )
@@ -111,9 +111,10 @@ class TurmasProgramaRequestSerializer(serializers.Serializer):
         allow_empty=True,
     )
 
-    def to_internal_value(self, data):
-        # O legado aceita o body como uma lista crua [str, str, ...].
-        # Encapsulamos para o ListField validar normalmente.
+    def to_internal_value(self, data: Any) -> dict[str, Any]:
+        """ O legado aceita o body como uma lista crua [str, str, ...].
+        Encapsulamos para o ListField validar normalmente.
+        """
         if isinstance(data, list):
             data = {"codigos_turmas": data}
         return super().to_internal_value(data)

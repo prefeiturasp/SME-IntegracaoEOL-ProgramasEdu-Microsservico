@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import patch
 
@@ -154,7 +154,7 @@ class EP04AlunosPapAnoCorrenteTestCase(TestCase):
         cliente = _autenticado()
         with patch(
             "apps.programas.services.timezone.now",
-            return_value=datetime(2026, 5, 1, tzinfo=timezone.utc),
+            return_value=datetime(2026, 5, 1, tzinfo=UTC),
         ):
             url = reverse("obter-alunos-pap-ano-corrente")
             resp = cliente.get(url)
@@ -173,11 +173,31 @@ class EP05AlunosPapPorAnoLetivoTestCase(TestCase):
             "obter-alunos-pap-por-ano-letivo",
             kwargs={"anoLetivo": "2026"},
         )
-        resp = cliente.get(url)
+        with patch(
+            "apps.programas.services.timezone.now",
+            return_value=datetime(2030, 1, 1, tzinfo=UTC),
+        ):
+            resp = cliente.get(url)
+            body = _body_json(resp)
         self.assertEqual(resp.status_code, 200)
-        body = _body_json(resp)
         self.assertEqual(len(body), 1)
         self.assertEqual(body[0]["codigoAluno"], 6730137)
+
+    def test_ano_corrente_retorna_array_vazio(self) -> None:
+        seed_matriculas()
+        cliente = _autenticado()
+        url = reverse(
+            "obter-alunos-pap-por-ano-letivo",
+            kwargs={"anoLetivo": "2026"},
+        )
+        with patch(
+            "apps.programas.services.timezone.now",
+            return_value=datetime(2026, 5, 1, tzinfo=UTC),
+        ):
+            resp = cliente.get(url)
+            body = _body_json(resp)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(body, [])
 
 
 class EP06ComponentesTurmasProgramaAlunoTestCase(TestCase):

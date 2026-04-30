@@ -26,6 +26,7 @@ class ProgramasTestRunner(DiscoverRunner):
             programas_models.TurmaPrograma,
             programas_models.TurmaProgramaComponenteCurricular,
             programas_models.MatriculaTurmaPrograma,
+            programas_models.MatriculaTurmaProgramaHistorico,
         ):
             model._meta.managed = True
 

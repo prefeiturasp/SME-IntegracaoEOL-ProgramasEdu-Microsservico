@@ -102,7 +102,7 @@ cp .env.example .env
 docker compose -f docker-compose-dev.yml up --build
 ```
 
-Acesse em: <http://localhost:8001/api/docs/>
+Acesse em: <http://localhost:8001/programasedu/api/v1/docs/>
 
 ---
 

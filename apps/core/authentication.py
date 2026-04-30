@@ -38,7 +38,9 @@ class ApiKeyAuthentication(BaseAuthentication):
 
     keyword = "X-API-Key"
 
-    def authenticate(self, request: Request) -> tuple[UsuarioApiKey, None] | None:
+    def authenticate(
+        self, request: Request
+    ) -> tuple[UsuarioApiKey, None] | None:
         """Autentica via header configurado (RFC 7235)."""
         header_name = getattr(settings, "API_KEY_HEADER", "x-api-key")
         api_key = getattr(settings, "API_KEY", "")
