@@ -410,7 +410,8 @@ def _query_alunos_pap_camel(
 
 def iter_alunos_pap_ano_corrente() -> Iterator[dict[str, Any]]:
     """EP-04 streaming — yields dicts em camelCase
-    chunk-a-chunk(tabela live)."""
+    chunk-a-chunk(tabela live).
+    """
     ano_corrente = timezone.now().year
     qs = _query_alunos_pap_camel(
         ano_letivo=ano_corrente,
