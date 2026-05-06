@@ -112,7 +112,7 @@ class TurmasProgramaRequestSerializer(serializers.Serializer):
     )
 
     def to_internal_value(self, data: Any) -> dict[str, Any]:
-        """ O legado aceita o body como uma lista crua [str, str, ...].
+        """O legado aceita o body como uma lista crua [str, str, ...].
         Encapsulamos para o ListField validar normalmente.
         """
         if isinstance(data, list):

@@ -134,8 +134,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 NIVEL_LOG = os.environ.get("NIVEL_LOG", "INFO")
 
 API_KEY_HEADER = os.environ.get("API_KEY_HEADER", "X-API-Key")
-API_KEY = "test-api-key" if MODO_TESTE else os.environ.get(
-    "API_KEY", "dev-key-default"
+API_KEY = (
+    "test-api-key"
+    if MODO_TESTE
+    else os.environ.get("API_KEY", "dev-key-default")
 )
 
 REST_FRAMEWORK = {
