@@ -8,10 +8,6 @@ EP-01 retorna shape reduzido — campos de aluno/pedagógico ausentes
 são agregados pelo Transition Gateway.
 """
 
-from collections.abc import Iterable, Iterator
-from typing import Any
-
-import orjson
 from django.http import HttpResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
@@ -46,56 +42,6 @@ def _to_int(valor: str, nome_param: str) -> int:
             f"Parâmetro '{nome_param}' deve ser um inteiro válido: "
             f"recebido {valor!r}."
         ) from exc
-
-
-_PAGINACAO_LIMITE_DEFAULT = 100
-_PAGINACAO_LIMITE_MAX = 500
-
-
-def _paginar_lista(
-    lista: list[Any], request: Request
-) -> tuple[list[Any], Response | None]:
-    """Pagina ``lista`` por ``?limit`` e ``?offset`` preservando o contrato.
-
-    Retorna ``(slice, None)`` em sucesso ou ``([], erro_400)`` quando os
-    parâmetros são inválidos. Limite default ``100`` e máximo ``500`` —
-    cliente que omitir ``limit`` recebe os primeiros ``100`` itens.
-    """
-    try:
-        limit = int(
-            request.query_params.get("limit", _PAGINACAO_LIMITE_DEFAULT)
-        )
-        offset = int(request.query_params.get("offset", 0))
-    except (TypeError, ValueError):
-        return [], Response(
-            {"detail": "Parâmetros 'limit' e 'offset' devem ser inteiros."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-    if limit <= 0 or offset < 0:
-        return [], Response(
-            {"detail": "Parâmetros 'limit' (>0) e 'offset' (>=0) inválidos."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-    limit = min(limit, _PAGINACAO_LIMITE_MAX)
-    return lista[offset : offset + limit], None
-
-
-def _stream_json_array(items: Iterable[dict[str, Any]]) -> Iterator[bytes]:
-    """Serializa um iterable como array JSON em chunks de bytes.
-
-    Mantém o mesmo shape do contrato legado (``[{...}, {...}]``) mas sem
-    materializar a lista inteira em memória — cada item vai pro socket
-    assim que sai do cursor do banco.
-    """
-    yield b"["
-    primeiro = True
-    for item in items:
-        if primeiro:
-            primeiro = False
-        else:
-            yield b","
-        yield json.dumps(item, default=str).encode("utf-8")
-    yield b"]"
 
 
 # ---------------------------------------------------------------------------
@@ -186,8 +132,6 @@ class VerificarSeAlunosSaoTurmaProgramaPapView(APIView):
                 required=True,
                 many=True,
             ),
-            OpenApiParameter("limit", int, OpenApiParameter.QUERY),
-            OpenApiParameter("offset", int, OpenApiParameter.QUERY),
         ],
         responses={200: AlunoTurmaProgramaPapSerializer(many=True)},
     )
@@ -218,11 +162,8 @@ class VerificarSeAlunosSaoTurmaProgramaPapView(APIView):
         dados = services.verificar_alunos_em_turma_pap(
             ano_letivo=ano, codigos_alunos=codigos
         )
-        pagina, erro = _paginar_lista(dados, request)
-        if erro is not None:
-            return erro
         return Response(
-            AlunoTurmaProgramaPapSerializer(pagina, many=True).data
+            AlunoTurmaProgramaPapSerializer(dados, many=True).data
         )
 
 
@@ -232,27 +173,21 @@ class VerificarSeAlunosSaoTurmaProgramaPapView(APIView):
 class ObterAlunosPapAnoCorrenteView(APIView):
     """EP-04 — Listar alunos PAP do ano corrente.
 
-    Utiliza ``orjson`` em vez de ``json.dump`` devido a grande quantidade de retorno.
-    Permite ``Content-Length`` definido (gzip/brotli mais eficientes,
-    progresso no browser).
+    Serialização via ``json_agg`` no Postgres + ``GZipMiddleware`` global:
+    o banco devolve o JSON pronto, o middleware comprime e o response
+    sai com ``Content-Length`` correto. Streaming foi descartado porque
+    o ``WSGIServer`` (runserver) não emite ``Transfer-Encoding: chunked``,
+    e Chrome falha a renderizar respostas grandes sem length nem chunked.
     """
 
     @extend_schema(
         tags=_TAG_PAP,
         summary="EP-04 | Listar alunos PAP do ano corrente",
-        parameters=[
-            OpenApiParameter("limit", int, OpenApiParameter.QUERY),
-            OpenApiParameter("offset", int, OpenApiParameter.QUERY),
-        ],
         responses={200: AlunoTurmaPapSerializer(many=True)},
     )
-    def get(self, request: Request) -> HttpResponse | Response:
-        dados = list(services.iter_alunos_pap_ano_corrente())
-        pagina, erro = _paginar_lista(dados, request)
-        if erro is not None:
-            return erro
+    def get(self, request: Request) -> HttpResponse:
         return HttpResponse(
-            orjson.dumps(pagina, default=str),
+            services.obter_alunos_pap_ano_corrente_json(),
             content_type="application/json",
         )
 
@@ -279,9 +214,8 @@ class ObterAlunosPapPorAnoLetivoView(APIView):
                 {"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        dados = list(services.iter_alunos_pap_por_ano(ano_letivo=ano))
         return HttpResponse(
-            orjson.dumps(dados, default=str),
+            services.obter_alunos_pap_por_ano_json(ano_letivo=ano),
             content_type="application/json",
         )
 

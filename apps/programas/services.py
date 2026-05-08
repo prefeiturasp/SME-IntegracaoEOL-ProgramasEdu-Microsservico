@@ -12,12 +12,14 @@ cicloEnsino — pertencentes ao Pedagógico) ficam de fora e são
 agregados pelo Transition Gateway.
 """
 
-from collections.abc import Iterator, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
 
-from django.db.models import F, QuerySet
+import orjson
+from django.db import connection
+from django.db.models import QuerySet
 from django.utils import timezone
 
 from apps.programas.enums import (
@@ -323,53 +325,15 @@ def _query_alunos_pap_snake(
     Postgres execute IN (SELECT …) num único round-trip, evitando o
     transporte de dezenas de milhares de IDs entre a aplicação e o banco.
 
-    Quando ``historico=True`` consulta ``MatriculaTurmaProgramaHistorico``
-    (carregada de ``v_historico_matricula_cotic``).
-    """
-    model = (
-        MatriculaTurmaProgramaHistorico
-        if historico
-        else MatriculaTurmaPrograma
-    )
+    A subquery ``turmas_ativas`` é restringida pelo mesmo ``ano_letivo``
+    da query principal — sem isso, traria turmas de todos os anos já
+    ingeridos, inflando o anti-join no Postgres.
 
-    componentes_pap_vigentes = ComponenteCurricularPrograma.objects.filter(
-        categoria=CategoriaPrograma.PAP,
-        vigente=True,
-    ).values("codigo_componente_curricular")
-    turmas_ativas = TurmaPrograma.objects.filter(
-        situacao__in=situacoes_turma,
-    ).values("codigo_turma")
-
-    return (
-        model.objects.filter(
-            ano_letivo=ano_letivo,
-            categoria=CategoriaPrograma.PAP,
-            codigo_componente_curricular__in=componentes_pap_vigentes,
-            codigo_situacao_matricula__in=list(situacoes_matricula),
-            codigo_turma__in=turmas_ativas,
-        )
-        .values(
-            "ano_letivo",
-            "codigo_turma",
-            "codigo_ue",
-            "codigo_dre",
-            "codigo_aluno",
-            "codigo_componente_curricular",
-        )
-        .distinct()
-    )
-
-
-def _query_alunos_pap_camel(
-    ano_letivo: int,
-    situacoes_matricula: Sequence[int],
-    situacoes_turma: Sequence[str],
-    historico: bool = False,
-) -> QuerySet:
-    """Mesma query, mas já com aliases em camelCase do contrato legado.
-
-    Evita uma passagem extra para renomear chaves em Python — o cursor
-    do banco já devolve dicts no shape final do JSON.
+    Não é necessário ``DISTINCT``: ``UniqueConstraint(codigo_turma,
+    codigo_aluno, codigo_componente_curricular)`` já garante unicidade
+    de cada linha; ``ano_letivo``, ``codigo_ue`` e ``codigo_dre`` são
+    funcionalmente dependentes de ``codigo_turma`` (desnormalizados da
+    ``turma_programa``).
 
     Quando ``historico=True`` consulta ``MatriculaTurmaProgramaHistorico``
     (carregada de ``v_historico_matricula_cotic``).
@@ -386,51 +350,50 @@ def _query_alunos_pap_camel(
     ).values("codigo_componente_curricular")
     turmas_ativas = TurmaPrograma.objects.filter(
         situacao__in=situacoes_turma,
+        ano_letivo=ano_letivo,
     ).values("codigo_turma")
 
-    return (
-        model.objects.filter(
-            ano_letivo=ano_letivo,
-            categoria=CategoriaPrograma.PAP,
-            codigo_componente_curricular__in=componentes_pap_vigentes,
-            codigo_situacao_matricula__in=list(situacoes_matricula),
-            codigo_turma__in=turmas_ativas,
-        )
-        .values(
-            anoLetivo=F("ano_letivo"),
-            codigoTurma=F("codigo_turma"),
-            codigoUe=F("codigo_ue"),
-            codigoDre=F("codigo_dre"),
-            codigoAluno=F("codigo_aluno"),
-            componenteCurricularId=F("codigo_componente_curricular"),
-        )
-        .distinct()
+    return model.objects.filter(
+        ano_letivo=ano_letivo,
+        categoria=CategoriaPrograma.PAP,
+        codigo_componente_curricular__in=componentes_pap_vigentes,
+        codigo_situacao_matricula__in=list(situacoes_matricula),
+        codigo_turma__in=turmas_ativas,
+    ).values(
+        "ano_letivo",
+        "codigo_turma",
+        "codigo_ue",
+        "codigo_dre",
+        "codigo_aluno",
+        "codigo_componente_curricular",
     )
 
 
-def iter_alunos_pap_ano_corrente() -> Iterator[dict[str, Any]]:
-    """EP-04 streaming — yields dicts em camelCase
-    chunk-a-chunk(tabela live).
+def obter_alunos_pap_ano_corrente_json() -> bytes:
+    """EP-04 — JSON em bytes (camelCase) com alunos PAP do ano corrente.
+
+    Array JSON é montado pelo Postgres (``json_agg``); o ``GZipMiddleware``
+    global comprime o payload antes de enviar. O ``HttpResponse`` mantém
+    ``Content-Length`` correto — Chrome/Firefox renderizam de forma
+    confiável (resposta sem length é instável no Chrome com runserver).
     """
     ano_corrente = timezone.now().year
-    qs = _query_alunos_pap_camel(
+    return _consultar_alunos_pap_json(
         ano_letivo=ano_corrente,
         situacoes_matricula=(SituacaoMatricula.ATIVO,),
         situacoes_turma=("O", "A", "C"),
         historico=False,
     )
-    yield from qs.iterator(chunk_size=2000)
 
 
-def iter_alunos_pap_por_ano(ano_letivo: int) -> Iterator[dict[str, Any]]:
-    """EP-05 streaming — yields dicts em camelCase
-    chunk-a-chunk (tabela histórica).
+def obter_alunos_pap_por_ano_json(ano_letivo: int) -> bytes:
+    """EP-05 — JSON em bytes (camelCase) com alunos PAP por ano letivo.
 
-    Retorna vazio para o ano corrente: dados live ficam no EP-04.
+    Retorna ``b"[]"`` para o ano corrente (dados live ficam no EP-04).
     """
     if ano_letivo >= timezone.now().year:
-        return
-    qs = _query_alunos_pap_camel(
+        return b"[]"
+    return _consultar_alunos_pap_json(
         ano_letivo=ano_letivo,
         situacoes_matricula=(
             SituacaoMatricula.ATIVO,
@@ -439,7 +402,125 @@ def iter_alunos_pap_por_ano(ano_letivo: int) -> Iterator[dict[str, Any]]:
         situacoes_turma=("O", "A", "C"),
         historico=True,
     )
-    yield from qs.iterator(chunk_size=2000)
+
+_SQL_ALUNOS_PAP_ATUAL = """
+    SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)::text
+    FROM (
+        SELECT mtp.ano_letivo                   AS "anoLetivo",
+               mtp.codigo_turma                 AS "codigoTurma",
+               mtp.codigo_ue                    AS "codigoUe",
+               mtp.codigo_dre                   AS "codigoDre",
+               mtp.codigo_aluno                 AS "codigoAluno",
+               mtp.codigo_componente_curricular AS "componenteCurricularId"
+        FROM matricula_turma_programa mtp
+        WHERE mtp.categoria = 'PAP'
+          AND mtp.ano_letivo = %(ano_letivo)s
+          AND mtp.codigo_situacao_matricula = ANY(%(situacoes_matricula)s)
+          AND mtp.codigo_componente_curricular IN (
+              SELECT codigo_componente_curricular
+              FROM componente_curricular_programa
+              WHERE categoria = 'PAP' AND vigente = TRUE
+          )
+          AND mtp.codigo_turma IN (
+              SELECT codigo_turma
+              FROM turma_programa
+              WHERE ano_letivo = %(ano_letivo)s
+                AND situacao = ANY(%(situacoes_turma)s)
+          )
+    ) t
+"""
+
+_SQL_ALUNOS_PAP_HISTORICO = """
+    SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)::text
+    FROM (
+        SELECT mtp.ano_letivo                   AS "anoLetivo",
+               mtp.codigo_turma                 AS "codigoTurma",
+               mtp.codigo_ue                    AS "codigoUe",
+               mtp.codigo_dre                   AS "codigoDre",
+               mtp.codigo_aluno                 AS "codigoAluno",
+               mtp.codigo_componente_curricular AS "componenteCurricularId"
+        FROM matricula_turma_programa_historico mtp
+        WHERE mtp.categoria = 'PAP'
+          AND mtp.ano_letivo = %(ano_letivo)s
+          AND mtp.codigo_situacao_matricula = ANY(%(situacoes_matricula)s)
+          AND mtp.codigo_componente_curricular IN (
+              SELECT codigo_componente_curricular
+              FROM componente_curricular_programa
+              WHERE categoria = 'PAP' AND vigente = TRUE
+          )
+          AND mtp.codigo_turma IN (
+              SELECT codigo_turma
+              FROM turma_programa
+              WHERE ano_letivo = %(ano_letivo)s
+                AND situacao = ANY(%(situacoes_turma)s)
+          )
+    ) t
+"""
+
+
+def _consultar_alunos_pap_json(
+    ano_letivo: int,
+    situacoes_matricula: Sequence[int],
+    situacoes_turma: Sequence[str],
+    historico: bool = False,
+) -> bytes:
+    """Devolve o array JSON de alunos PAP em bytes prontos pro socket.
+
+    No Postgres usa ``json_agg(row_to_json(t))`` para que a serialização
+    aconteça no banco. Em SQLite (testes), cai no ORM e serializa via
+    ``orjson`` — mantém os testes funcionando sem Postgres.
+    """
+    if connection.vendor == "postgresql":
+        return _consultar_alunos_pap_json_postgres(
+            ano_letivo=ano_letivo,
+            situacoes_matricula=situacoes_matricula,
+            situacoes_turma=situacoes_turma,
+            historico=historico,
+        )
+    qs = _query_alunos_pap_snake(
+        ano_letivo=ano_letivo,
+        situacoes_matricula=situacoes_matricula,
+        situacoes_turma=situacoes_turma,
+        historico=historico,
+    )
+    return orjson.dumps(
+        [
+            {
+                "anoLetivo": linha["ano_letivo"],
+                "codigoTurma": linha["codigo_turma"],
+                "codigoUe": linha["codigo_ue"],
+                "codigoDre": linha["codigo_dre"],
+                "codigoAluno": linha["codigo_aluno"],
+                "componenteCurricularId": linha[
+                    "codigo_componente_curricular"
+                ],
+            }
+            for linha in qs
+        ],
+        default=str,
+    )
+
+
+def _consultar_alunos_pap_json_postgres(
+    ano_letivo: int,
+    situacoes_matricula: Sequence[int],
+    situacoes_turma: Sequence[str],
+    historico: bool = False,
+) -> bytes:
+    """Caminho rápido — ``json_agg`` no Postgres devolve TEXT pronto."""
+    sql = _SQL_ALUNOS_PAP_HISTORICO if historico else _SQL_ALUNOS_PAP_ATUAL
+    with connection.cursor() as cur:
+        cur.execute(
+            sql,
+            {
+                "ano_letivo": ano_letivo,
+                "situacoes_matricula": list(situacoes_matricula),
+                "situacoes_turma": list(situacoes_turma),
+            },
+        )
+        row = cur.fetchone()
+    texto = row[0] if row and row[0] is not None else "[]"
+    return texto.encode("utf-8") if isinstance(texto, str) else bytes(texto)
 
 
 # ---------------------------------------------------------------------------
