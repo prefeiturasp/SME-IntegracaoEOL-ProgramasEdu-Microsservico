@@ -403,10 +403,59 @@ def obter_alunos_pap_por_ano_json(ano_letivo: int) -> bytes:
         historico=True,
     )
 
-_TABELAS_MATRICULA_PAP = {
-    False: "matricula_turma_programa",
-    True: "matricula_turma_programa_historico",
-}
+_SQL_ALUNOS_PAP_ATUAL = """
+    SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)::text
+    FROM (
+        SELECT mtp.ano_letivo                   AS "anoLetivo",
+               mtp.codigo_turma                 AS "codigoTurma",
+               mtp.codigo_ue                    AS "codigoUe",
+               mtp.codigo_dre                   AS "codigoDre",
+               mtp.codigo_aluno                 AS "codigoAluno",
+               mtp.codigo_componente_curricular AS "componenteCurricularId"
+        FROM matricula_turma_programa mtp
+        WHERE mtp.categoria = 'PAP'
+          AND mtp.ano_letivo = %(ano_letivo)s
+          AND mtp.codigo_situacao_matricula = ANY(%(situacoes_matricula)s)
+          AND mtp.codigo_componente_curricular IN (
+              SELECT codigo_componente_curricular
+              FROM componente_curricular_programa
+              WHERE categoria = 'PAP' AND vigente = TRUE
+          )
+          AND mtp.codigo_turma IN (
+              SELECT codigo_turma
+              FROM turma_programa
+              WHERE ano_letivo = %(ano_letivo)s
+                AND situacao = ANY(%(situacoes_turma)s)
+          )
+    ) t
+"""
+
+_SQL_ALUNOS_PAP_HISTORICO = """
+    SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)::text
+    FROM (
+        SELECT mtp.ano_letivo                   AS "anoLetivo",
+               mtp.codigo_turma                 AS "codigoTurma",
+               mtp.codigo_ue                    AS "codigoUe",
+               mtp.codigo_dre                   AS "codigoDre",
+               mtp.codigo_aluno                 AS "codigoAluno",
+               mtp.codigo_componente_curricular AS "componenteCurricularId"
+        FROM matricula_turma_programa_historico mtp
+        WHERE mtp.categoria = 'PAP'
+          AND mtp.ano_letivo = %(ano_letivo)s
+          AND mtp.codigo_situacao_matricula = ANY(%(situacoes_matricula)s)
+          AND mtp.codigo_componente_curricular IN (
+              SELECT codigo_componente_curricular
+              FROM componente_curricular_programa
+              WHERE categoria = 'PAP' AND vigente = TRUE
+          )
+          AND mtp.codigo_turma IN (
+              SELECT codigo_turma
+              FROM turma_programa
+              WHERE ano_letivo = %(ano_letivo)s
+                AND situacao = ANY(%(situacoes_turma)s)
+          )
+    ) t
+"""
 
 
 def _consultar_alunos_pap_json(
@@ -459,35 +508,7 @@ def _consultar_alunos_pap_json_postgres(
     historico: bool = False,
 ) -> bytes:
     """Caminho rápido — ``json_agg`` no Postgres devolve TEXT pronto."""
-    tabela = _TABELAS_MATRICULA_PAP[historico]
-    sql = f"""
-        SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)::text
-        FROM (
-            SELECT mtp.ano_letivo                   AS "anoLetivo",
-                   mtp.codigo_turma                 AS "codigoTurma",
-                   mtp.codigo_ue                    AS "codigoUe",
-                   mtp.codigo_dre                   AS "codigoDre",
-                   mtp.codigo_aluno                 AS "codigoAluno",
-                   mtp.codigo_componente_curricular AS "componenteCurricularId"
-            FROM {tabela} mtp
-            WHERE mtp.categoria = 'PAP'
-              AND mtp.ano_letivo = %(ano_letivo)s
-              AND mtp.codigo_situacao_matricula = ANY(
-                  %(situacoes_matricula)s
-              )
-              AND mtp.codigo_componente_curricular IN (
-                  SELECT codigo_componente_curricular
-                  FROM componente_curricular_programa
-                  WHERE categoria = 'PAP' AND vigente = TRUE
-              )
-              AND mtp.codigo_turma IN (
-                  SELECT codigo_turma
-                  FROM turma_programa
-                  WHERE ano_letivo = %(ano_letivo)s
-                    AND situacao = ANY(%(situacoes_turma)s)
-              )
-        ) t
-    """
+    sql = _SQL_ALUNOS_PAP_HISTORICO if historico else _SQL_ALUNOS_PAP_ATUAL
     with connection.cursor() as cur:
         cur.execute(
             sql,
