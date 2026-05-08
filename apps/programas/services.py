@@ -403,9 +403,6 @@ def obter_alunos_pap_por_ano_json(ano_letivo: int) -> bytes:
         historico=True,
     )
 
-
-# Tabelas válidas para ``_consultar_alunos_pap_json`` — interpolar no
-# SQL é seguro porque o conjunto é fechado e não vem de input externo.
 _TABELAS_MATRICULA_PAP = {
     False: "matricula_turma_programa",
     True: "matricula_turma_programa_historico",
