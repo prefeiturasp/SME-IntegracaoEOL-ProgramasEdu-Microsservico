@@ -45,14 +45,14 @@ def _to_int(valor: str, nome_param: str) -> int:
 
 
 # ---------------------------------------------------------------------------
-# EP-01 — GET /paee/turma-srm-e-regular/aluno/{codigoAluno}
+# EP-01 — GET /paee/turma-srm-e-regular/aluno/{codigo_aluno}
 # ---------------------------------------------------------------------------
 class ObterTurmaSrmERegularDoAlunoView(APIView):
-    """EP-01 — Obter turmas SRM e regular de um aluno PAEE."""
+    """Obter turmas SRM e regular de um aluno PAEE."""
 
     @extend_schema(
         tags=_TAG_PAEE,
-        summary="EP-01 | Obter turmas SRM/regular do aluno (shape reduzido)",
+        summary="Obter turmas SRM/regular do aluno (shape reduzido)",
         description=(
             "Retorna apenas os campos pertencentes ao domínio Programas. "
             "Campos como nomeAluno, dataNascimento, nomeResponsavel, "
@@ -61,13 +61,13 @@ class ObterTurmaSrmERegularDoAlunoView(APIView):
             "Gateway na resposta final ao consumidor."
         ),
         parameters=[
-            OpenApiParameter("codigoAluno", str, OpenApiParameter.PATH),
+            OpenApiParameter("codigo_aluno", str, OpenApiParameter.PATH),
         ],
         responses={200: TurmaSrmRegularDoAlunoSerializer(many=True)},
     )
-    def get(self, request: Request, codigoAluno: str) -> Response:
+    def get(self, request: Request, codigo_aluno: str) -> Response:
         try:
-            codigo = _to_int(codigoAluno, "codigoAluno")
+            codigo = _to_int(codigo_aluno, "codigo_aluno")
         except ValueError as exc:
             return Response(
                 {"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST
@@ -80,53 +80,52 @@ class ObterTurmaSrmERegularDoAlunoView(APIView):
 
 
 # ---------------------------------------------------------------------------
-# EP-02 — GET /turmas-pap/{anoLetivo}/ues/{codigoEscola}
+# EP-02 — GET /turmas-pap/{ano_letivo}/ues/{codigo_escola}
 # ---------------------------------------------------------------------------
 class ObterTurmasPapView(APIView):
-    """EP-02 — Listar turmas PAP de uma UE em um ano letivo."""
+    """Listar turmas PAP de uma UE em um ano letivo."""
 
     @extend_schema(
         tags=_TAG_PAP,
-        summary="EP-02 | Listar turmas PAP por ano letivo e UE",
+        summary="Listar turmas PAP por ano letivo e UE",
         parameters=[
-            OpenApiParameter("anoLetivo", int, OpenApiParameter.PATH),
-            OpenApiParameter("codigoEscola", str, OpenApiParameter.PATH),
+            OpenApiParameter("ano_letivo", int, OpenApiParameter.PATH),
+            OpenApiParameter("codigo_escola", str, OpenApiParameter.PATH),
         ],
         responses={200: TurmaPapResumoSerializer(many=True)},
     )
     def get(
-        self, request: Request, anoLetivo: str, codigoEscola: str
+        self, request: Request, ano_letivo: str, codigo_escola: str
     ) -> Response:
         try:
-            ano = _to_int(anoLetivo, "anoLetivo")
+            ano = _to_int(ano_letivo, "ano_letivo")
         except ValueError as exc:
             return Response(
                 {"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST
             )
 
         dados = services.listar_turmas_pap_da_ue(
-            ano_letivo=ano, codigo_ue=codigoEscola
+            ano_letivo=ano, codigo_ue=codigo_escola
         )
         return Response(TurmaPapResumoSerializer(dados, many=True).data)
 
 
 # ---------------------------------------------------------------------------
-# EP-03 — GET /alunos-pap/{anoLetivo}
+# EP-03 — GET /alunos-pap/{ano_letivo}
 # ---------------------------------------------------------------------------
 class VerificarSeAlunosSaoTurmaProgramaPapView(APIView):
-    """EP-03 — Verificar quais alunos pertencem a turmas PAP em um ano.
+    """Verificar quais alunos pertencem a turmas PAP em um ano.
 
-    O legado recebe a lista de codigosAlunos via query param
-    (``codigosAlunos`` repetido) — preservamos o mesmo contrato.
+    Recebe a lista de ``codigos_alunos`` via query param repetido.
     """
 
     @extend_schema(
         tags=_TAG_PAP,
-        summary="EP-03 | Verificar se alunos pertencem a turmas PAP",
+        summary="Verificar se alunos pertencem a turmas PAP",
         parameters=[
-            OpenApiParameter("anoLetivo", int, OpenApiParameter.PATH),
+            OpenApiParameter("ano_letivo", int, OpenApiParameter.PATH),
             OpenApiParameter(
-                "codigosAlunos",
+                "codigos_alunos",
                 int,
                 OpenApiParameter.QUERY,
                 required=True,
@@ -135,15 +134,15 @@ class VerificarSeAlunosSaoTurmaProgramaPapView(APIView):
         ],
         responses={200: AlunoTurmaProgramaPapSerializer(many=True)},
     )
-    def get(self, request: Request, anoLetivo: str) -> Response:
+    def get(self, request: Request, ano_letivo: str) -> Response:
         try:
-            ano = _to_int(anoLetivo, "anoLetivo")
+            ano = _to_int(ano_letivo, "ano_letivo")
         except ValueError as exc:
             return Response(
                 {"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        codigos_raw = request.query_params.getlist("codigosAlunos")
+        codigos_raw = request.query_params.getlist("codigos_alunos")
         codigos: list[int] = []
         for codigo in codigos_raw:
             try:
@@ -152,7 +151,7 @@ class VerificarSeAlunosSaoTurmaProgramaPapView(APIView):
                 return Response(
                     {
                         "detail": (
-                            "codigosAlunos deve conter apenas inteiros: "
+                            "codigos_alunos deve conter apenas inteiros: "
                             f"recebido {codigo!r}."
                         )
                     },
@@ -171,7 +170,7 @@ class VerificarSeAlunosSaoTurmaProgramaPapView(APIView):
 # EP-04 — GET /pap/ano-corrente
 # ---------------------------------------------------------------------------
 class ObterAlunosPapAnoCorrenteView(APIView):
-    """EP-04 — Listar alunos PAP do ano corrente.
+    """Listar alunos PAP do ano corrente.
 
     Serialização via ``json_agg`` no Postgres + ``GZipMiddleware`` global:
     o banco devolve o JSON pronto, o middleware comprime e o response
@@ -182,7 +181,7 @@ class ObterAlunosPapAnoCorrenteView(APIView):
 
     @extend_schema(
         tags=_TAG_PAP,
-        summary="EP-04 | Listar alunos PAP do ano corrente",
+        summary="Listar alunos PAP do ano corrente",
         responses={200: AlunoTurmaPapSerializer(many=True)},
     )
     def get(self, request: Request) -> HttpResponse:
@@ -193,22 +192,24 @@ class ObterAlunosPapAnoCorrenteView(APIView):
 
 
 # ---------------------------------------------------------------------------
-# EP-05 — GET /pap/ano-letivo/{anoLetivo}
+# EP-05 — GET /pap/ano-letivo/{ano_letivo}
 # ---------------------------------------------------------------------------
 class ObterAlunosPapPorAnoLetivoView(APIView):
-    """EP-05 — Listar alunos PAP por ano letivo (mesma estratégia do EP-04)."""
+    """Listar alunos PAP por ano letivo (mesma estratégia do EP-04)."""
 
     @extend_schema(
         tags=_TAG_PAP,
-        summary="EP-05 | Listar alunos PAP por ano letivo",
+        summary="Listar alunos PAP por ano letivo",
         parameters=[
-            OpenApiParameter("anoLetivo", int, OpenApiParameter.PATH),
+            OpenApiParameter("ano_letivo", int, OpenApiParameter.PATH),
         ],
         responses={200: AlunoTurmaPapSerializer(many=True)},
     )
-    def get(self, request: Request, anoLetivo: str) -> HttpResponse | Response:
+    def get(
+        self, request: Request, ano_letivo: str
+    ) -> HttpResponse | Response:
         try:
-            ano = _to_int(anoLetivo, "anoLetivo")
+            ano = _to_int(ano_letivo, "ano_letivo")
         except ValueError as exc:
             return Response(
                 {"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST
@@ -222,28 +223,28 @@ class ObterAlunosPapPorAnoLetivoView(APIView):
 
 # -------------------------------------------------------------------
 # EP-06 — GET
-# /{codigoAluno}/turmas-programa/{anoLetivo}/componentes-curriculares
+# /{codigo_aluno}/turmas-programa/{ano_letivo}/componentes-curriculares
 # -------------------------------------------------------------------
 class ObterComponentesCurricularesTurmasProgramaAlunoView(APIView):
-    """EP-06 — Componentes curriculares das turmas de programa do aluno."""
+    """Componentes curriculares das turmas de programa do aluno."""
 
     @extend_schema(
         tags=_TAG_PAP,
         summary=(
-            "EP-06 | Componentes curriculares das turmas de programa do aluno"
+            "Componentes curriculares das turmas de programa do aluno"
         ),
         parameters=[
-            OpenApiParameter("codigoAluno", str, OpenApiParameter.PATH),
-            OpenApiParameter("anoLetivo", int, OpenApiParameter.PATH),
+            OpenApiParameter("codigo_aluno", str, OpenApiParameter.PATH),
+            OpenApiParameter("ano_letivo", int, OpenApiParameter.PATH),
         ],
         responses={200: ComponenteTurmaProgramaAlunoSerializer(many=True)},
     )
     def get(
-        self, request: Request, codigoAluno: str, anoLetivo: str
+        self, request: Request, codigo_aluno: str, ano_letivo: str
     ) -> Response:
         try:
-            codigo = _to_int(codigoAluno, "codigoAluno")
-            ano = _to_int(anoLetivo, "anoLetivo")
+            codigo = _to_int(codigo_aluno, "codigo_aluno")
+            ano = _to_int(ano_letivo, "ano_letivo")
         except ValueError as exc:
             return Response(
                 {"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST
@@ -258,22 +259,22 @@ class ObterComponentesCurricularesTurmasProgramaAlunoView(APIView):
 
 
 # ---------------------------------------------------------------------------
-# EP-07 — GET /srm-paee/aluno/{codigoAluno}
+# EP-07 — GET /srm-paee/aluno/{codigo_aluno}
 # ---------------------------------------------------------------------------
 class ObterDadosSrmPaeeColaborativoView(APIView):
-    """EP-07 — Dados de SRM/PAEE colaborativo do aluno."""
+    """Dados de SRM/PAEE colaborativo do aluno."""
 
     @extend_schema(
         tags=_TAG_PAEE,
-        summary="EP-07 | Dados de SRM/PAEE colaborativo do aluno",
+        summary="Dados de SRM/PAEE colaborativo do aluno",
         parameters=[
-            OpenApiParameter("codigoAluno", str, OpenApiParameter.PATH),
+            OpenApiParameter("codigo_aluno", str, OpenApiParameter.PATH),
         ],
         responses={200: DadosSrmPaeeColaborativoSerializer(many=True)},
     )
-    def get(self, request: Request, codigoAluno: str) -> Response:
+    def get(self, request: Request, codigo_aluno: str) -> Response:
         try:
-            codigo = _to_int(codigoAluno, "codigoAluno")
+            codigo = _to_int(codigo_aluno, "codigo_aluno")
         except ValueError as exc:
             return Response(
                 {"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST
@@ -289,7 +290,7 @@ class ObterDadosSrmPaeeColaborativoView(APIView):
 # EP-08 — POST /turmas/turmas-programa
 # ---------------------------------------------------------------------------
 class ObterTurmasProgramaView(APIView):
-    """EP-08 — Filtrar códigos de turma que são turmas de programa.
+    """Filtrar códigos de turma que são turmas de programa.
 
     Body: lista de strings (códigos de turma) — fiel ao contrato legado
     (``IEnumerable<string>``).
@@ -297,7 +298,7 @@ class ObterTurmasProgramaView(APIView):
 
     @extend_schema(
         tags=_TAG_TURMAS,
-        summary="EP-08 | Filtrar códigos de turma que são turmas de programa",
+        summary="Filtrar códigos de turma que são turmas de programa",
         request={
             "application/json": {
                 "type": "array",

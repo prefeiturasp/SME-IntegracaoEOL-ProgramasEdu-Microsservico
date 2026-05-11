@@ -43,7 +43,7 @@ from apps.programas.models import (
 
 @dataclass(frozen=True)
 class TurmaSrmRegularDoAlunoDTO:
-    """EP-01 — Saída de /paee/turma-srm-e-regular/aluno/{codigoAluno}.
+    """EP-01 — Saída de /paee/turma-srm-e-regular/aluno/{codigo_aluno}.
 
     Inclui apenas campos que existem em programas_db. Campos de aluno
     (nomeAluno, dataNascimento, nomeResponsavel etc.) são responsabilidade
@@ -62,7 +62,7 @@ class TurmaSrmRegularDoAlunoDTO:
 
 @dataclass(frozen=True)
 class TurmaPapResumoDTO:
-    """EP-02 — Saída de /turmas-pap/{anoLetivo}/ues/{codigoEscola}."""
+    """EP-02 — Saída de /turmas-pap/{ano_letivo}/ues/{codigo_escola}."""
 
     codigo_turma: str
     turma_nome: str
@@ -70,7 +70,7 @@ class TurmaPapResumoDTO:
 
 @dataclass(frozen=True)
 class AlunoTurmaProgramaPapDTO:
-    """EP-03 — Saída de /alunos-pap/{anoLetivo}."""
+    """EP-03 — Saída de /alunos-pap/{ano_letivo}."""
 
     codigo_aluno: int
     codigo_turma: int
@@ -92,7 +92,7 @@ class AlunoTurmaPapDTO:
 
 @dataclass(frozen=True)
 class ComponenteTurmaProgramaAlunoDTO:
-    """EP-06 — Saída de /{codigoAluno}/turmas-programa/{ano}/componentes."""
+    """EP-06 — Saída de /{codigo_aluno}/turmas-programa/{ano}/componentes."""
 
     codigo_aluno: str
     codigo_turma: int
@@ -102,7 +102,7 @@ class ComponenteTurmaProgramaAlunoDTO:
 
 @dataclass(frozen=True)
 class DadosSrmPaeeColaborativoDTO:
-    """EP-07 — Saída de /srm-paee/aluno/{codigoAluno}."""
+    """EP-07 — Saída de /srm-paee/aluno/{codigo_aluno}."""
 
     codigo_turma: int
     codigo_escola: str
@@ -115,7 +115,7 @@ class DadosSrmPaeeColaborativoDTO:
 
 
 # ---------------------------------------------------------------------------
-# EP-01 — GET /paee/turma-srm-e-regular/aluno/{codigoAluno}
+# EP-01 — GET /paee/turma-srm-e-regular/aluno/{codigo_aluno}
 # ---------------------------------------------------------------------------
 def obter_turmas_paee_do_aluno(
     codigo_aluno: int,
@@ -170,7 +170,7 @@ def obter_turmas_paee_do_aluno(
 
 
 # ---------------------------------------------------------------------------
-# EP-02 — GET /turmas-pap/{anoLetivo}/ues/{codigoEscola}
+# EP-02 — GET /turmas-pap/{ano_letivo}/ues/{codigo_escola}
 # ---------------------------------------------------------------------------
 def listar_turmas_pap_da_ue(
     ano_letivo: int, codigo_ue: str
@@ -207,7 +207,7 @@ def listar_turmas_pap_da_ue(
 
 
 # ---------------------------------------------------------------------------
-# EP-03 — GET /alunos-pap/{anoLetivo}  (filtra por lista de codigosAlunos)
+# EP-03 — GET /alunos-pap/{ano_letivo}  (filtra por lista de codigos_alunos)
 # ---------------------------------------------------------------------------
 def verificar_alunos_em_turma_pap(
     ano_letivo: int, codigos_alunos: Sequence[int]
@@ -259,7 +259,7 @@ def listar_alunos_pap_ano_corrente() -> list[AlunoTurmaPapDTO]:
 
 
 # ---------------------------------------------------------------------------
-# EP-05 — GET /pap/ano-letivo/{anoLetivo}
+# EP-05 — GET /pap/ano-letivo/{ano_letivo}
 # ---------------------------------------------------------------------------
 def listar_alunos_pap_por_ano(ano_letivo: int) -> list[AlunoTurmaPapDTO]:
     """Lista alunos PAP por ano letivo (tabela histórica).
@@ -406,12 +406,12 @@ def obter_alunos_pap_por_ano_json(ano_letivo: int) -> bytes:
 _SQL_ALUNOS_PAP_ATUAL = """
     SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)::text
     FROM (
-        SELECT mtp.ano_letivo                   AS "anoLetivo",
-               mtp.codigo_turma                 AS "codigoTurma",
-               mtp.codigo_ue                    AS "codigoUe",
-               mtp.codigo_dre                   AS "codigoDre",
-               mtp.codigo_aluno                 AS "codigoAluno",
-               mtp.codigo_componente_curricular AS "componenteCurricularId"
+        SELECT mtp.ano_letivo                   AS "ano_letivo",
+               mtp.codigo_turma                 AS "codigo_turma",
+               mtp.codigo_ue                    AS "codigo_ue",
+               mtp.codigo_dre                   AS "codigo_dre",
+               mtp.codigo_aluno                 AS "codigo_aluno",
+               mtp.codigo_componente_curricular AS "componente_curricular_id"
         FROM matricula_turma_programa mtp
         WHERE mtp.categoria = 'PAP'
           AND mtp.ano_letivo = %(ano_letivo)s
@@ -433,12 +433,12 @@ _SQL_ALUNOS_PAP_ATUAL = """
 _SQL_ALUNOS_PAP_HISTORICO = """
     SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)::text
     FROM (
-        SELECT mtp.ano_letivo                   AS "anoLetivo",
-               mtp.codigo_turma                 AS "codigoTurma",
-               mtp.codigo_ue                    AS "codigoUe",
-               mtp.codigo_dre                   AS "codigoDre",
-               mtp.codigo_aluno                 AS "codigoAluno",
-               mtp.codigo_componente_curricular AS "componenteCurricularId"
+        SELECT mtp.ano_letivo                   AS "ano_letivo",
+               mtp.codigo_turma                 AS "codigo_turma",
+               mtp.codigo_ue                    AS "codigo_ue",
+               mtp.codigo_dre                   AS "codigo_dre",
+               mtp.codigo_aluno                 AS "codigo_aluno",
+               mtp.codigo_componente_curricular AS "componente_curricular_id"
         FROM matricula_turma_programa_historico mtp
         WHERE mtp.categoria = 'PAP'
           AND mtp.ano_letivo = %(ano_letivo)s
@@ -486,12 +486,12 @@ def _consultar_alunos_pap_json(
     return orjson.dumps(
         [
             {
-                "anoLetivo": linha["ano_letivo"],
-                "codigoTurma": linha["codigo_turma"],
-                "codigoUe": linha["codigo_ue"],
-                "codigoDre": linha["codigo_dre"],
-                "codigoAluno": linha["codigo_aluno"],
-                "componenteCurricularId": linha[
+                "ano_letivo": linha["ano_letivo"],
+                "codigo_turma": linha["codigo_turma"],
+                "codigo_ue": linha["codigo_ue"],
+                "codigo_dre": linha["codigo_dre"],
+                "codigo_aluno": linha["codigo_aluno"],
+                "componente_curricular_id": linha[
                     "codigo_componente_curricular"
                 ],
             }
@@ -525,7 +525,7 @@ def _consultar_alunos_pap_json_postgres(
 
 # ---------------------------------------------------------------------------
 # EP-06 — GET
-# /{codigoAluno}/turmas-programa/{anoLetivo}/componentes-curriculares
+# /{codigo_aluno}/turmas-programa/{ano_letivo}/componentes-curriculares
 # ---------------------------------------------------------------------------
 def listar_componentes_turmas_aluno(
     codigo_aluno: int, ano_letivo: int
@@ -560,7 +560,7 @@ def listar_componentes_turmas_aluno(
 
 
 # ---------------------------------------------------------------------------
-# EP-07 — GET /srm-paee/aluno/{codigoAluno}
+# EP-07 — GET /srm-paee/aluno/{codigo_aluno}
 # ---------------------------------------------------------------------------
 def obter_dados_srm_paee_aluno(
     codigo_aluno: int,

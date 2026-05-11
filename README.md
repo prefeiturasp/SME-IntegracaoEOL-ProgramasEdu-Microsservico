@@ -181,13 +181,13 @@ normalmente.
 
 | ID | Método | Path |
 |----|--------|------|
-| EP-01 | GET  | `/api/alunos/paee/turma-srm-e-regular/aluno/<codigoAluno>` |
-| EP-02 | GET  | `/api/alunos/turmas-pap/<anoLetivo>/ues/<codigoEscola>` |
-| EP-03 | GET  | `/api/alunos/alunos-pap/<anoLetivo>?codigosAlunos=...` |
+| EP-01 | GET  | `/api/alunos/paee/turma-srm-e-regular/aluno/<codigo_aluno>` |
+| EP-02 | GET  | `/api/alunos/turmas-pap/<ano_letivo>/ues/<codigo_escola>` |
+| EP-03 | GET  | `/api/alunos/alunos-pap/<ano_letivo>?codigosAlunos=...` |
 | EP-04 | GET  | `/api/alunos/pap/ano-corrente` |
-| EP-05 | GET  | `/api/alunos/pap/ano-letivo/<anoLetivo>` |
-| EP-06 | GET  | `/api/alunos/<codigoAluno>/turmas-programa/<anoLetivo>/componentes-curriculares` |
-| EP-07 | GET  | `/api/alunos/srm-paee/aluno/<codigoAluno>` |
+| EP-05 | GET  | `/api/alunos/pap/ano-letivo/<ano_letivo>` |
+| EP-06 | GET  | `/api/alunos/<codigo_aluno>/turmas-programa/<ano_letivo>/componentes-curriculares` |
+| EP-07 | GET  | `/api/alunos/srm-paee/aluno/<codigo_aluno>` |
 | EP-08 | POST | `/api/turmas/turmas-programa` |
 
 ### Observações sobre o contrato
