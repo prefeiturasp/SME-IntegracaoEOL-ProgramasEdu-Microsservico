@@ -1,6 +1,6 @@
 import { Given, When, Then } from 'cypress-cucumber-preprocessor/steps'
 
-let response
+let statusCode
 
 Given('que possuo acesso à API de ProgramasEdu', () => {
 
@@ -10,57 +10,57 @@ Given('que possuo acesso à API de ProgramasEdu', () => {
 
 When('realizo consulta de turmas PAP do aluno', () => {
 
-  cy.getTurmasPapAluno().then((res) => {
-    response = res
+  cy.getTurmasPapAluno().its('status').then((status) => {
+    statusCode = status
   })
 })
 
 When('realizo consulta de alunos PAP do ano letivo', () => {
 
-  cy.getAlunosPapAnoLetivo().then((res) => {
-    response = res
+  cy.getAlunosPapAnoLetivo().its('status').then((status) => {
+    statusCode = status
   })
 })
 
 When('realizo consulta de PAP do ano corrente', () => {
 
-  cy.getPapAnoCorrente().then((res) => {
-    response = res
+  cy.getPapAnoCorrente().its('status').then((status) => {
+    statusCode = status
   })
 })
 
 When('realizo consulta de PAP por ano letivo', () => {
 
-  cy.getPapAnoLetivo().then((res) => {
-    response = res
+  cy.getPapAnoLetivo().its('status').then((status) => {
+    statusCode = status
   })
 })
 
 When('realizo consulta de turmas PAP por ano letivo', () => {
 
-  cy.getTurmasPapAnoLetivo().then((res) => {
-    response = res
+  cy.getTurmasPapAnoLetivo().its('status').then((status) => {
+    statusCode = status
   })
 })
 
 When('realizo consulta de turma SRM e regular do aluno', () => {
 
-  cy.getTurmaSrmRegularAluno().then((res) => {
-    response = res
+  cy.getTurmaSrmRegularAluno().its('status').then((status) => {
+    statusCode = status
   })
 })
 
 When('realizo consulta de SRM PAEE do aluno', () => {
 
-  cy.getSrmPaeeAluno().then((res) => {
-    response = res
+  cy.getSrmPaeeAluno().its('status').then((status) => {
+    statusCode = status
   })
 })
 
 When('realizo consulta POST de turmas programa', () => {
 
-  cy.postTurmasPrograma().then((res) => {
-    response = res
+  cy.postTurmasPrograma().its('status').then((status) => {
+    statusCode = status
   })
 })
 
@@ -74,5 +74,5 @@ Then('o status da resposta de ProgramasEdu deve ser válido', () => {
     400,
     404,
     500,
-  ]).to.include(response.status)
+  ]).to.include(statusCode)
 })
