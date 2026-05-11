@@ -1,0 +1,116 @@
+import { defineConfig } from 'cypress'
+import allureWriter from '@shelex/cypress-allure-plugin/writer.js'
+import { cloudPlugin } from 'cypress-cloud/plugin'
+import dotenv from 'dotenv'
+import cucumber from 'cypress-cucumber-preprocessor'
+import preprocessor from '@cypress/webpack-preprocessor'
+
+dotenv.config()
+
+const envKeys = [
+  'API_URL',
+  'API_KEY',
+  'API_KEY_HEADER',
+  'CODIGO_ALUNO',
+  'ANO_LETIVO',
+  'CODIGO_TURMA',
+]
+
+export default defineConfig({
+  e2e: {
+
+    watchForFileChanges: false,
+
+    supportFile: 'cypress/support/e2e.js',
+
+    viewportWidth: 1920,
+    viewportHeight: 1080,
+
+    video: false,
+
+    numTestsKeptInMemory: 0,
+
+    experimentalMemoryManagement: true,
+
+    chromeWebSecurity: false,
+
+    experimentalRunAllSpecs: false,
+
+    failOnStatusCode: false,
+
+    retries: {
+      runMode: 0,
+      openMode: 0,
+    },
+
+    specPattern: ['cypress/e2e/**/*.feature'],
+
+    defaultCommandTimeout: 20000,
+    requestTimeout: 20000,
+    responseTimeout: 20000,
+    execTimeout: 20000,
+    pageLoadTimeout: 20000,
+
+    env: {
+      allure: true,
+
+      // IGNORA TAGS @ignore
+      TAGS: 'not @ignore',
+    },
+
+    async setupNodeEvents(on, config) {
+
+      allureWriter(on, config)
+
+      config.env.allure = true
+
+      // IGNORA FEATURES/CENÁRIOS COM @ignore
+      process.env.TAGS = 'not @ignore'
+
+      const webpackConfig = {
+        module: {
+          rules: [
+            {
+              test: /\.js$/,
+              exclude: [/node_modules/],
+              use: {
+                loader: 'babel-loader',
+                options: {
+                  plugins: ['@babel/plugin-transform-modules-commonjs'],
+                },
+              },
+            },
+          ],
+        },
+      }
+
+      on(
+        'file:preprocessor',
+        preprocessor({
+          webpackOptions: webpackConfig,
+        }),
+      )
+
+      on('file:preprocessor', cucumber.default())
+
+      const customVariables = Object.fromEntries(
+        envKeys.map((key) => [key, process.env[key] ?? '']),
+      )
+
+      config.env = {
+        ...config.env,
+        ...customVariables,
+      }
+
+      if (!config.env.API_URL) {
+        throw new Error('API_URL não definida no .env')
+      }
+
+      if (!config.env.API_KEY) {
+        throw new Error('API_KEY não definida no .env')
+      }
+
+      return await cloudPlugin(on, config)
+    },
+  },
+})
