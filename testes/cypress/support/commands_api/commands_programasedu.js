@@ -6,6 +6,9 @@ Cypress.Commands.add('getTurmasPapAluno', () => {
       accept: 'application/json',
       [Cypress.env('API_KEY_HEADER')]: Cypress.env('API_KEY'),
     },
+    encoding: 'utf8',
+    gzip: false,
+    log: false,
     failOnStatusCode: false,
   })
 })
@@ -18,6 +21,9 @@ Cypress.Commands.add('getAlunosPapAnoLetivo', () => {
       accept: 'application/json',
       [Cypress.env('API_KEY_HEADER')]: Cypress.env('API_KEY'),
     },
+    encoding: 'utf8',
+    gzip: false,
+    log: false,
     failOnStatusCode: false,
   })
 })
@@ -30,6 +36,9 @@ Cypress.Commands.add('getPapAnoCorrente', () => {
       accept: 'application/json',
       [Cypress.env('API_KEY_HEADER')]: Cypress.env('API_KEY'),
     },
+    encoding: 'utf8',
+    gzip: false,
+    log: false,
     failOnStatusCode: false,
   })
 })
@@ -42,6 +51,9 @@ Cypress.Commands.add('getPapAnoLetivo', () => {
       accept: 'application/json',
       [Cypress.env('API_KEY_HEADER')]: Cypress.env('API_KEY'),
     },
+    encoding: 'utf8',
+    gzip: false,
+    log: false,
     failOnStatusCode: false,
   })
 })
@@ -54,6 +66,9 @@ Cypress.Commands.add('getTurmasPapAnoLetivo', () => {
       accept: 'application/json',
       [Cypress.env('API_KEY_HEADER')]: Cypress.env('API_KEY'),
     },
+    encoding: 'utf8',
+    gzip: false,
+    log: false,
     failOnStatusCode: false,
   })
 })
@@ -66,6 +81,9 @@ Cypress.Commands.add('getTurmaSrmRegularAluno', () => {
       accept: 'application/json',
       [Cypress.env('API_KEY_HEADER')]: Cypress.env('API_KEY'),
     },
+    encoding: 'utf8',
+    gzip: false,
+    log: false,
     failOnStatusCode: false,
   })
 })
@@ -78,6 +96,9 @@ Cypress.Commands.add('getSrmPaeeAluno', () => {
       accept: 'application/json',
       [Cypress.env('API_KEY_HEADER')]: Cypress.env('API_KEY'),
     },
+    encoding: 'utf8',
+    gzip: false,
+    log: false,
     failOnStatusCode: false,
   })
 })
@@ -95,6 +116,9 @@ Cypress.Commands.add('postTurmasPrograma', () => {
       anoLetivo: Number(Cypress.env('ANO_LETIVO')),
       codigosTurmas: [Number(Cypress.env('CODIGO_TURMA'))],
     },
+    encoding: 'utf8',
+    gzip: false,
+    log: false,
     failOnStatusCode: false,
   })
 })

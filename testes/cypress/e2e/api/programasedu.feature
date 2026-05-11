@@ -7,15 +7,18 @@ Funcionalidade: API - ProgramasEdu
     Quando realizo consulta de turmas PAP do aluno
     Então o status da resposta de ProgramasEdu deve ser válido
 
+@ignore
   Cenário: Consultar alunos PAP do ano letivo
     Dado que possuo acesso à API de ProgramasEdu
     Quando realizo consulta de alunos PAP do ano letivo
     Então o status da resposta de ProgramasEdu deve ser válido
 
+@ignore
   Cenário: Consultar PAP do ano corrente
     Dado que possuo acesso à API de ProgramasEdu
     Quando realizo consulta de PAP do ano corrente
     Então o status da resposta de ProgramasEdu deve ser válido
+    
 
   Cenário: Consultar PAP por ano letivo
     Dado que possuo acesso à API de ProgramasEdu

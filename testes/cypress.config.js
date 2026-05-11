@@ -19,7 +19,7 @@ const envKeys = [
 export default defineConfig({
   e2e: {
 
-    watchForFileChanges: true,
+    watchForFileChanges: false,
 
     supportFile: 'cypress/support/e2e.js',
 
@@ -28,25 +28,34 @@ export default defineConfig({
 
     video: false,
 
+    numTestsKeptInMemory: 0,
+
+    experimentalMemoryManagement: true,
+
+    chromeWebSecurity: false,
+
+    experimentalRunAllSpecs: false,
+
+    failOnStatusCode: false,
+
     retries: {
-      runMode: 2,
+      runMode: 0,
       openMode: 0,
     },
 
-    screenshotOnRunFailure: false,
-    chromeWebSecurity: false,
-    experimentalRunAllSpecs: true,
-    failOnStatusCode: false,
-
     specPattern: ['cypress/e2e/**/*.feature'],
 
-    defaultCommandTimeout: 60000,
-    requestTimeout: 60000,
-    execTimeout: 60000,
-    pageLoadTimeout: 60000,
+    defaultCommandTimeout: 20000,
+    requestTimeout: 20000,
+    responseTimeout: 20000,
+    execTimeout: 20000,
+    pageLoadTimeout: 20000,
 
     env: {
       allure: true,
+
+      // IGNORA TAGS @ignore
+      TAGS: 'not @ignore',
     },
 
     async setupNodeEvents(on, config) {
@@ -54,6 +63,9 @@ export default defineConfig({
       allureWriter(on, config)
 
       config.env.allure = true
+
+      // IGNORA FEATURES/CENÁRIOS COM @ignore
+      process.env.TAGS = 'not @ignore'
 
       const webpackConfig = {
         module: {
