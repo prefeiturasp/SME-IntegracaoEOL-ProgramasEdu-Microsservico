@@ -166,7 +166,7 @@ class MatriculaTurmaProgramaHistorico(models.Model):
 
     Espelha MatriculaTurmaPrograma, mas é populada pelo ETL a partir de
     ``v_historico_matricula_cotic``. Usada no EP-05
-    (pap/ano-letivo/{anoLetivo}) para retornar dados coerentes com o legado.
+    (pap/ano-letivo/{ano_letivo}) para retornar dados coerentes com o legado.
     """
 
     codigo_aluno = models.BigIntegerField()
