@@ -3,13 +3,13 @@
 Os paths replicam o contrato dos endpoints legados do
 SME-Pedagogico-API:
 
-GET  /api/alunos/paee/turma-srm-e-regular/aluno/{codigoAluno}
-GET  /api/alunos/turmas-pap/{anoLetivo}/ues/{codigoEscola}
-GET  /api/alunos/alunos-pap/{anoLetivo}
+GET  /api/alunos/paee/turma-srm-e-regular/aluno/{codigo_aluno}
+GET  /api/alunos/turmas-pap/{ano_letivo}/ues/{codigo_escola}
+GET  /api/alunos/alunos-pap/{ano_letivo}
 GET  /api/alunos/pap/ano-corrente
-GET  /api/alunos/pap/ano-letivo/{anoLetivo}
-GET  /api/alunos/{codigoAluno}/turmas-programa/{anoLetivo}/componentes-curriculares
-GET  /api/alunos/srm-paee/aluno/{codigoAluno}
+GET  /api/alunos/pap/ano-letivo/{ano_letivo}
+GET  /api/alunos/{codigo_aluno}/turmas-programa/{ano_letivo}/componentes-curriculares
+GET  /api/alunos/srm-paee/aluno/{codigo_aluno}
 POST /api/turmas/turmas-programa
 
 Os 7 primeiros endpoints (do AlunoController do legado) ficam sob
@@ -34,17 +34,17 @@ urlpatterns = [
     # AlunoController do legado → /api/alunos/...
     # ------------------------------------------------------------------
     path(
-        "alunos/paee/turma-srm-e-regular/aluno/<str:codigoAluno>",
+        "alunos/paee/turma-srm-e-regular/aluno/<str:codigo_aluno>",
         ObterTurmaSrmERegularDoAlunoView.as_view(),
         name="obter-turma-srm-e-regular-do-aluno",
     ),
     path(
-        "alunos/turmas-pap/<str:anoLetivo>/ues/<str:codigoEscola>",
+        "alunos/turmas-pap/<str:ano_letivo>/ues/<str:codigo_escola>",
         ObterTurmasPapView.as_view(),
         name="obter-turmas-pap",
     ),
     path(
-        "alunos/alunos-pap/<str:anoLetivo>",
+        "alunos/alunos-pap/<str:ano_letivo>",
         VerificarSeAlunosSaoTurmaProgramaPapView.as_view(),
         name="verificar-se-alunos-sao-turma-programa-pap",
     ),
@@ -54,18 +54,18 @@ urlpatterns = [
         name="obter-alunos-pap-ano-corrente",
     ),
     path(
-        "alunos/pap/ano-letivo/<str:anoLetivo>",
+        "alunos/pap/ano-letivo/<str:ano_letivo>",
         ObterAlunosPapPorAnoLetivoView.as_view(),
         name="obter-alunos-pap-por-ano-letivo",
     ),
     path(
-        "alunos/<str:codigoAluno>/turmas-programa/<str:anoLetivo>"
+        "alunos/<str:codigo_aluno>/turmas-programa/<str:ano_letivo>"
         "/componentes-curriculares",
         ObterComponentesCurricularesTurmasProgramaAlunoView.as_view(),
         name="obter-componentes-curriculares-turmas-programa-aluno",
     ),
     path(
-        "alunos/srm-paee/aluno/<str:codigoAluno>",
+        "alunos/srm-paee/aluno/<str:codigo_aluno>",
         ObterDadosSrmPaeeColaborativoView.as_view(),
         name="obter-dados-srm-paee-colaborativo",
     ),

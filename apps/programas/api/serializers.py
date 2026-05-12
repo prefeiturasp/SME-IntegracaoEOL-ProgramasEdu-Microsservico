@@ -26,60 +26,50 @@ class TurmaSrmRegularDoAlunoSerializer(serializers.Serializer):
     dataAtualizacaoTabela.
     """
 
-    codigoAluno = serializers.IntegerField(source="codigo_aluno")
-    codigoTurma = serializers.IntegerField(source="codigo_turma")
-    anoLetivo = serializers.IntegerField(source="ano_letivo")
-    tipoTurno = serializers.IntegerField(source="tipo_turno", allow_null=True)
-    codigoSituacaoMatricula = serializers.IntegerField(
-        source="codigo_situacao_matricula"
-    )
-    situacaoMatricula = serializers.CharField(source="situacao_matricula")
-    dataSituacao = serializers.DateField(
-        source="data_situacao", allow_null=True
-    )
-    turmaNome = serializers.CharField(source="turma_nome")
+    codigo_aluno = serializers.IntegerField()
+    codigo_turma = serializers.IntegerField()
+    ano_letivo = serializers.IntegerField()
+    tipo_turno = serializers.IntegerField(allow_null=True)
+    codigo_situacao_matricula = serializers.IntegerField()
+    situacao_matricula = serializers.CharField()
+    data_situacao = serializers.DateField()
+    turma_nome = serializers.CharField()
 
 
 class TurmaPapResumoSerializer(serializers.Serializer):
     """EP-02 — Turmas PAP da UE no ano letivo."""
 
-    codigoTurma = serializers.CharField(source="codigo_turma")
-    turmaNome = serializers.CharField(source="turma_nome")
+    codigo_turma = serializers.CharField()
+    turma_nome = serializers.CharField()
 
 
 class AlunoTurmaProgramaPapSerializer(serializers.Serializer):
     """EP-03 — Verificação de alunos PAP."""
 
-    codigoAluno = serializers.IntegerField(source="codigo_aluno")
-    codigoTurma = serializers.IntegerField(source="codigo_turma")
-    codigoComponente = serializers.IntegerField(source="codigo_componente")
+    codigo_aluno = serializers.IntegerField()
+    codigo_turma = serializers.IntegerField()
+    codigo_componente = serializers.IntegerField()
     descricao = serializers.CharField()
 
 
 class AlunoTurmaPapSerializer(serializers.Serializer):
     """EP-04 / EP-05 — Alunos PAP do ano corrente / por ano letivo."""
 
-    anoLetivo = serializers.IntegerField(source="ano_letivo")
-    codigoTurma = serializers.IntegerField(source="codigo_turma")
-    codigoUe = serializers.CharField(source="codigo_ue")
-    codigoDre = serializers.CharField(source="codigo_dre")
-    codigoAluno = serializers.IntegerField(source="codigo_aluno")
-    componenteCurricularId = serializers.IntegerField(
-        source="componente_curricular_id"
-    )
+    ano_letivo = serializers.IntegerField()
+    codigo_turma = serializers.IntegerField()
+    codigo_ue = serializers.CharField()
+    codigo_dre = serializers.CharField()
+    codigo_aluno = serializers.IntegerField()
+    componente_curricular_id = serializers.IntegerField()
 
 
 class ComponenteTurmaProgramaAlunoSerializer(serializers.Serializer):
     """EP-06 — Componentes das turmas de programa do aluno."""
 
-    codigoAluno = serializers.CharField(source="codigo_aluno")
-    codigoTurma = serializers.IntegerField(source="codigo_turma")
-    codigoComponenteCurricular = serializers.IntegerField(
-        source="codigo_componente_curricular"
-    )
-    nomeComponenteCurricular = serializers.CharField(
-        source="nome_componente_curricular"
-    )
+    codigo_aluno = serializers.CharField()
+    codigo_turma = serializers.IntegerField()
+    codigo_componente_curricular = serializers.IntegerField()
+    nome_componente_curricular = serializers.CharField()
 
 
 class DadosSrmPaeeColaborativoSerializer(serializers.Serializer):
@@ -89,14 +79,14 @@ class DadosSrmPaeeColaborativoSerializer(serializers.Serializer):
     contrato do legado (que retornava o valor de st_matricula como char).
     """
 
-    codigoTurma = serializers.IntegerField(source="codigo_turma")
-    codigoEscola = serializers.CharField(source="codigo_escola")
+    codigo_turma = serializers.IntegerField()
+    codigo_escola = serializers.CharField()
     turno = serializers.CharField()
     componente = serializers.CharField()
-    codigoComponente = serializers.IntegerField(source="codigo_componente")
-    codigoAluno = serializers.IntegerField(source="codigo_aluno")
-    situacaoMatricula = serializers.CharField(source="situacao_matricula")
-    dataMatricula = serializers.DateField(source="data_matricula")
+    codigo_componente = serializers.IntegerField()
+    codigo_aluno = serializers.IntegerField()
+    situacao_matricula = serializers.CharField()
+    data_matricula = serializers.DateField()
 
 
 class TurmasProgramaRequestSerializer(serializers.Serializer):
