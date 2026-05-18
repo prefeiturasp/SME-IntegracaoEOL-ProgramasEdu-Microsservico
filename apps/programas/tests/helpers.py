@@ -6,6 +6,8 @@ from datetime import UTC, date, datetime
 
 from apps.programas.enums import CategoriaPrograma
 from apps.programas.models import (
+    AlunoPapAnoLetivo,
+    AlunoPapAnoLetivoHistorico,
     ComponenteCurricularPrograma,
     MatriculaTurmaPrograma,
     MatriculaTurmaProgramaHistorico,
@@ -172,4 +174,26 @@ def seed_matriculas() -> list[MatriculaTurmaPrograma]:
         criado_em=agora(),
         atualizado_em=agora(),
     )
+    seed_alunos_pap()
     return matriculas
+
+
+def seed_alunos_pap() -> None:
+    """Popula as tabelas pré-agregadas PAP usadas nos testes."""
+    # Só a linha PAP (6730137); o aluno PAEE (5285836) não entra.
+    AlunoPapAnoLetivo.objects.create(
+        codigo_aluno=6730137,
+        codigo_turma=3082743,
+        codigo_componente_curricular=1770,
+        ano_letivo=2026,
+        codigo_ue="019660",
+        codigo_dre="108400",
+    )
+    AlunoPapAnoLetivoHistorico.objects.create(
+        codigo_aluno=6730137,
+        codigo_turma=3082743,
+        codigo_componente_curricular=1770,
+        ano_letivo=2026,
+        codigo_ue="019660",
+        codigo_dre="108400",
+    )

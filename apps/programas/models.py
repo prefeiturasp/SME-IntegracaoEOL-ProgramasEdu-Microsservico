@@ -16,6 +16,9 @@ Hierarquia (espelha o MS-ETL):
 
     MatriculaTurmaProgramaHistorico (lida de v_historico_matricula_cotic
                                      pelo ETL — usada no EP-05)
+
+    AlunoPapAnoLetivo               (pré-agregada PAP — carga live)
+    AlunoPapAnoLetivoHistorico      (pré-agregada PAP — carga histórica)
 """
 
 from django.db import models
@@ -200,4 +203,58 @@ class MatriculaTurmaProgramaHistorico(models.Model):
             f" — turma {self.codigo_turma}"
             f" / CC {self.codigo_componente_curricular}"
             f" (histórico)"
+        )
+
+
+class AlunoPapAnoLetivo(models.Model):
+    """Alunos PAP por ano letivo, pré-agregados (carga live)."""
+
+    # Materializada e filtrada pelo MS-ETL; este serviço apenas lê.
+    codigo_aluno = models.BigIntegerField()
+    codigo_turma = models.BigIntegerField()
+    codigo_componente_curricular = models.BigIntegerField()
+    ano_letivo = models.SmallIntegerField()
+    codigo_ue = models.CharField(max_length=20)
+    codigo_dre = models.CharField(max_length=20)
+
+    class Meta:
+        app_label = "programas"
+        db_table = "aluno_pap_ano_letivo"
+        managed = False
+        verbose_name = "aluno PAP por ano letivo"
+        verbose_name_plural = "alunos PAP por ano letivo"
+
+    def __str__(self) -> str:
+        return (
+            f"Aluno {self.codigo_aluno}"
+            f" — turma {self.codigo_turma}"
+            f" / CC {self.codigo_componente_curricular}"
+            f" ({self.ano_letivo})"
+        )
+
+
+class AlunoPapAnoLetivoHistorico(models.Model):
+    """Alunos PAP por ano letivo, pré-agregados (carga histórica)."""
+
+    # Materializada e filtrada pelo MS-ETL; este serviço apenas lê.
+    codigo_aluno = models.BigIntegerField()
+    codigo_turma = models.BigIntegerField()
+    codigo_componente_curricular = models.BigIntegerField()
+    ano_letivo = models.SmallIntegerField()
+    codigo_ue = models.CharField(max_length=20)
+    codigo_dre = models.CharField(max_length=20)
+
+    class Meta:
+        app_label = "programas"
+        db_table = "aluno_pap_ano_letivo_historico"
+        managed = False
+        verbose_name = "aluno PAP por ano letivo (histórico)"
+        verbose_name_plural = "alunos PAP por ano letivo (histórico)"
+
+    def __str__(self) -> str:
+        return (
+            f"Aluno {self.codigo_aluno}"
+            f" — turma {self.codigo_turma}"
+            f" / CC {self.codigo_componente_curricular}"
+            f" ({self.ano_letivo}, histórico)"
         )

@@ -12,6 +12,8 @@ from apps.programas.enums import (
     SituacaoTurma,
 )
 from apps.programas.models import (
+    AlunoPapAnoLetivo,
+    AlunoPapAnoLetivoHistorico,
     ComponenteCurricularPrograma,
     MatriculaTurmaPrograma,
     TipoPrograma,
@@ -97,6 +99,47 @@ class MatriculaTurmaProgramaTestCase(TestCase):
         self.assertIn("6730137", resultado)
         self.assertIn("3082743", resultado)
         self.assertIn("1770", resultado)
+
+
+class AlunoPapAnoLetivoTestCase(TestCase):
+    def test_str_e_db_table(self) -> None:
+        aluno = AlunoPapAnoLetivo(
+            codigo_aluno=6730137,
+            codigo_turma=3082743,
+            codigo_componente_curricular=1770,
+            ano_letivo=2026,
+            codigo_ue="019660",
+            codigo_dre="108400",
+        )
+        resultado = str(aluno)
+        self.assertIn("6730137", resultado)
+        self.assertIn("3082743", resultado)
+        self.assertIn("1770", resultado)
+        self.assertIn("2026", resultado)
+        self.assertEqual(
+            AlunoPapAnoLetivo._meta.db_table, "aluno_pap_ano_letivo"
+        )
+        self.assertFalse(AlunoPapAnoLetivo._meta.managed)
+
+
+class AlunoPapAnoLetivoHistoricoTestCase(TestCase):
+    def test_str_e_db_table(self) -> None:
+        aluno = AlunoPapAnoLetivoHistorico(
+            codigo_aluno=6730137,
+            codigo_turma=3082743,
+            codigo_componente_curricular=1770,
+            ano_letivo=2026,
+            codigo_ue="019660",
+            codigo_dre="108400",
+        )
+        resultado = str(aluno)
+        self.assertIn("6730137", resultado)
+        self.assertIn("histórico", resultado)
+        self.assertEqual(
+            AlunoPapAnoLetivoHistorico._meta.db_table,
+            "aluno_pap_ano_letivo_historico",
+        )
+        self.assertFalse(AlunoPapAnoLetivoHistorico._meta.managed)
 
 
 class SituacaoTurmaGetDescricaoTestCase(TestCase):
