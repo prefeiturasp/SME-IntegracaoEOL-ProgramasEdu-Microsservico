@@ -1,13 +1,4 @@
-"""Enums e mapeamentos do domínio Programas.
-
-Centraliza os valores do EOL usados pelo domínio:
-    - CategoriaPrograma           PAP / PAEE
-    - SituacaoTurma               st_turma_escola (O/A/C/E)
-    - SituacaoMatricula           st_matricula / cd_situacao_aluno (1-17)
-
-Espelha apps/programas/enums.py do SME-IntegracaoEOL-MS-ETL — replicado
-aqui para preservar independência entre microsserviços (sem cross-import).
-"""
+"""Enums e mapeamentos do domínio Programas."""
 
 from enum import IntEnum, StrEnum
 
@@ -22,7 +13,7 @@ class CategoriaPrograma(models.TextChoices):
 
 
 class SituacaoTurma(StrEnum):
-    """st_turma_escola do EOL."""
+    """Situação da turma escolar."""
 
     ORGANIZADA = "O"
     NAO_ORGANIZADA = "A"
@@ -48,7 +39,7 @@ class SituacaoTurma(StrEnum):
 
 
 class SituacaoMatricula(IntEnum):
-    """Mapeamento de cd_situacao_aluno / st_matricula do EOL."""
+    """Situação da matrícula do aluno."""
 
     ATIVO = 1
     DESISTENTE = 2

@@ -1,4 +1,4 @@
-"""Consultas de leitura do domínio Programas (programas_db)."""
+"""Services de leitura do domínio Programas."""
 
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -7,6 +7,7 @@ from typing import Any
 
 import orjson
 from django.db import connection
+from django.db.models import QuerySet
 from django.utils import timezone
 
 from apps.programas.enums import (
@@ -21,6 +22,7 @@ from apps.programas.models import (
     ComponenteCurricularPrograma,
     MatriculaTurmaPrograma,
     TurmaPrograma,
+    MatriculaTurmaProgramaHistorico
 )
 
 # ---------------------------------------------------------------------------
@@ -30,7 +32,7 @@ from apps.programas.models import (
 
 @dataclass(frozen=True)
 class TurmaSrmRegularDoAlunoDTO:
-    """Turma SRM/regular do aluno PAEE (shape reduzido)."""
+    """Dados de turmas SRM/regular do aluno PAEE."""
 
     codigo_aluno: int
     codigo_turma: int
@@ -44,7 +46,7 @@ class TurmaSrmRegularDoAlunoDTO:
 
 @dataclass(frozen=True)
 class TurmaPapResumoDTO:
-    """Turma PAP resumida (código e nome)."""
+    """Resumo de turma PAP."""
 
     codigo_turma: str
     turma_nome: str
@@ -74,7 +76,7 @@ class AlunoTurmaPapDTO:
 
 @dataclass(frozen=True)
 class ComponenteTurmaProgramaAlunoDTO:
-    """Componente curricular da turma de programa do aluno."""
+    """Componente de turma de programa do aluno."""
 
     codigo_aluno: str
     codigo_turma: int
@@ -96,18 +98,10 @@ class DadosSrmPaeeColaborativoDTO:
     data_matricula: datetime | date
 
 
-# ---------------------------------------------------------------------------
-# EP-01 — GET /paee/turma-srm-e-regular/aluno/{codigo_aluno}
-# ---------------------------------------------------------------------------
 def obter_turmas_paee_do_aluno(
     codigo_aluno: int,
 ) -> list[TurmaSrmRegularDoAlunoDTO]:
-    """Lista turmas PAEE em que o aluno está matriculado.
-
-    Espelha BuscarTurmasSrmERegularDoAlunoQueryHandler do legado
-    (origem ElasticSearch). Retorna shape reduzido: a 'turma regular' e
-    dados de aluno são agregados pelo Transition Gateway.
-    """
+    """Lista as turmas PAEE em que o aluno está matriculado."""
     qs = (
         MatriculaTurmaPrograma.objects.filter(
             codigo_aluno=codigo_aluno,
@@ -151,20 +145,10 @@ def obter_turmas_paee_do_aluno(
     return resultado
 
 
-# ---------------------------------------------------------------------------
-# EP-02 — GET /turmas-pap/{ano_letivo}/ues/{codigo_escola}
-# ---------------------------------------------------------------------------
 def listar_turmas_pap_da_ue(
     ano_letivo: int, codigo_ue: str
 ) -> list[TurmaPapResumoDTO]:
-    """Lista turmas PAP de uma UE em um ano letivo.
-
-    O ``turmaNome`` segue o contrato legado:
-    ``"<nome_turma> - <descricao_grade>"`` (ex.:
-    ``"L0 - PAP COLABORATIVO 3 / 4 E 5 ANO"``). Quando ``descricao_grade``
-    está nulo (turmas legadas ainda não reprocessadas pelo MS-ETL após
-    a adição da coluna), retorna apenas ``nome_turma``.
-    """
+    """Lista as turmas PAP de uma UE em um ano letivo."""
     qs = (
         TurmaPrograma.objects.filter(
             ano_letivo=ano_letivo,
@@ -188,9 +172,6 @@ def listar_turmas_pap_da_ue(
     ]
 
 
-# ---------------------------------------------------------------------------
-# EP-03 — GET /alunos-pap/{ano_letivo}  (filtra por lista de codigos_alunos)
-# ---------------------------------------------------------------------------
 def verificar_alunos_em_turma_pap(
     ano_letivo: int, codigos_alunos: Sequence[int]
 ) -> list[AlunoTurmaProgramaPapDTO]:
@@ -226,20 +207,14 @@ def verificar_alunos_em_turma_pap(
     ]
 
 
-# ---------------------------------------------------------------------------
-# EP-04 — GET /pap/ano-corrente
-# ---------------------------------------------------------------------------
 def listar_alunos_pap_ano_corrente() -> list[AlunoTurmaPapDTO]:
-    """Lista alunos PAP do ano corrente."""
+    """Lista os alunos PAP do ano corrente."""
     ano_corrente = timezone.now().year
     return _consultar_alunos_pap(AlunoPapAnoLetivo, ano_letivo=ano_corrente)
 
 
-# ---------------------------------------------------------------------------
-# EP-05 — GET /pap/ano-letivo/{ano_letivo}
-# ---------------------------------------------------------------------------
 def listar_alunos_pap_por_ano(ano_letivo: int) -> list[AlunoTurmaPapDTO]:
-    """Lista alunos PAP do ano letivo informado."""
+    """Lista os alunos PAP de um ano letivo já encerrado."""
     if ano_letivo >= timezone.now().year:
         return []
     return _consultar_alunos_pap(
@@ -251,8 +226,7 @@ def _consultar_alunos_pap(
     model: type[AlunoPapAnoLetivo] | type[AlunoPapAnoLetivoHistorico],
     ano_letivo: int,
 ) -> list[AlunoTurmaPapDTO]:
-    """Lê a tabela pré-agregada e devolve os DTOs PAP."""
-    # codigo_componente_curricular é exposto como componente_curricular_id.
+    """Consulta alunos PAP e mapeia para dataclasses."""
     qs = model.objects.filter(ano_letivo=ano_letivo).values(
         "ano_letivo",
         "codigo_turma",
@@ -274,9 +248,46 @@ def _consultar_alunos_pap(
     ]
 
 
+def _query_alunos_pap_snake(
+    ano_letivo: int,
+    situacoes_matricula: Sequence[int],
+    situacoes_turma: Sequence[str],
+    historico: bool = False,
+) -> QuerySet:
+    """Monta o queryset base de alunos PAP em snake_case."""
+    model = (
+        MatriculaTurmaProgramaHistorico
+        if historico
+        else MatriculaTurmaPrograma
+    )
+
+    componentes_pap_vigentes = ComponenteCurricularPrograma.objects.filter(
+        categoria=CategoriaPrograma.PAP,
+        vigente=True,
+    ).values("codigo_componente_curricular")
+    turmas_ativas = TurmaPrograma.objects.filter(
+        situacao__in=situacoes_turma,
+        ano_letivo=ano_letivo,
+    ).values("codigo_turma")
+
+    return model.objects.filter(
+        ano_letivo=ano_letivo,
+        categoria=CategoriaPrograma.PAP,
+        codigo_componente_curricular__in=componentes_pap_vigentes,
+        codigo_situacao_matricula__in=list(situacoes_matricula),
+        codigo_turma__in=turmas_ativas,
+    ).values(
+        "ano_letivo",
+        "codigo_turma",
+        "codigo_ue",
+        "codigo_dre",
+        "codigo_aluno",
+        "codigo_componente_curricular",
+    )
+
+
 def obter_alunos_pap_ano_corrente_json() -> bytes:
-    """Retorna o JSON dos alunos PAP do ano corrente."""
-    # json_agg no Postgres + GZip: Content-Length estável p/ navegador.
+    """Retorna em JSON (bytes) os alunos PAP do ano corrente."""
     ano_corrente = timezone.now().year
     return _consultar_alunos_pap_json(
         ano_letivo=ano_corrente, historico=False
@@ -284,12 +295,13 @@ def obter_alunos_pap_ano_corrente_json() -> bytes:
 
 
 def obter_alunos_pap_por_ano_json(ano_letivo: int) -> bytes:
-    """Retorna o JSON dos alunos PAP do ano letivo informado."""
+    """Retorna em JSON (bytes) os alunos PAP de um ano encerrado."""
     if ano_letivo >= timezone.now().year:
         return b"[]"
     return _consultar_alunos_pap_json(
         ano_letivo=ano_letivo, historico=True
     )
+
 
 _SQL_ALUNOS_PAP_ATUAL = """
     SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)::text
@@ -324,8 +336,7 @@ def _consultar_alunos_pap_json(
     ano_letivo: int,
     historico: bool = False,
 ) -> bytes:
-    """Retorna o array JSON de alunos PAP em bytes."""
-    # Postgres: json_agg no banco. SQLite (testes): ORM + orjson.
+    """Devolve o array JSON de alunos PAP em bytes."""
     model: type[AlunoPapAnoLetivo] | type[AlunoPapAnoLetivoHistorico] = (
         AlunoPapAnoLetivoHistorico if historico else AlunoPapAnoLetivo
     )
@@ -370,14 +381,32 @@ def _consultar_alunos_pap_json(
     )
 
 
-# ---------------------------------------------------------------------------
-# EP-06 — GET
-# /{codigo_aluno}/turmas-programa/{ano_letivo}/componentes-curriculares
-# ---------------------------------------------------------------------------
+def _consultar_alunos_pap_json_postgres(
+    ano_letivo: int,
+    situacoes_matricula: Sequence[int],
+    situacoes_turma: Sequence[str],
+    historico: bool = False,
+) -> bytes:
+    """Executa o json_agg no Postgres e devolve o TEXT pronto."""
+    sql = _SQL_ALUNOS_PAP_HISTORICO if historico else _SQL_ALUNOS_PAP_ATUAL
+    with connection.cursor() as cur:
+        cur.execute(
+            sql,
+            {
+                "ano_letivo": ano_letivo,
+                "situacoes_matricula": list(situacoes_matricula),
+                "situacoes_turma": list(situacoes_turma),
+            },
+        )
+        row = cur.fetchone()
+    texto = row[0] if row and row[0] is not None else "[]"
+    return texto.encode("utf-8") if isinstance(texto, str) else bytes(texto)
+
+
 def listar_componentes_turmas_aluno(
     codigo_aluno: int, ano_letivo: int
 ) -> list[ComponenteTurmaProgramaAlunoDTO]:
-    """Componentes curriculares das turmas de programa do aluno em um ano."""
+    """Lista os componentes das turmas de programa do aluno no ano."""
     qs = (
         MatriculaTurmaPrograma.objects.filter(
             codigo_aluno=codigo_aluno,
@@ -406,13 +435,10 @@ def listar_componentes_turmas_aluno(
     ]
 
 
-# ---------------------------------------------------------------------------
-# EP-07 — GET /srm-paee/aluno/{codigo_aluno}
-# ---------------------------------------------------------------------------
 def obter_dados_srm_paee_aluno(
     codigo_aluno: int,
 ) -> list[DadosSrmPaeeColaborativoDTO]:
-    """Dados de SRM/PAEE colaborativo do aluno (componente=1030)."""
+    """Retorna os dados de SRM/PAEE colaborativo do aluno."""
     qs = (
         MatriculaTurmaPrograma.objects.filter(
             codigo_aluno=codigo_aluno,
@@ -456,17 +482,10 @@ def obter_dados_srm_paee_aluno(
     return resultado
 
 
-# ---------------------------------------------------------------------------
-# EP-08 — POST /turmas/turmas-programa
-# ---------------------------------------------------------------------------
 def filtrar_codigos_que_sao_turma_programa(
     codigos_turmas: Sequence[str],
 ) -> list[str]:
-    """Retorna o subconjunto dos códigos informados que são turmas de programa.
-
-    Como turma_programa é populada exclusivamente com cd_tipo_turma=3
-    do EOL, basta testar a existência do código na tabela.
-    """
+    """Filtra os códigos informados que são turmas de programa."""
     if not codigos_turmas:
         return []
 

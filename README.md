@@ -48,6 +48,17 @@ Tabelas lidas em `programas_db`:
 | `TurmaProgramaComponenteCurricular` | `turma_programa_componente_curricular` |
 | `MatriculaTurmaPrograma` | `matricula_turma_programa` |
 
+
+Hierarquia (espelha o MS-ETL):
+`TipoPrograma`
+         └── `TurmaPrograma`
+                 ├── `TurmaProgramaComponenteCurricular`
+                 └── `MatriculaTurmaPrograma`
+     `ComponenteCurricularPrograma` — configuração que substitui
+         constantes hardcoded do Pedagogico-API legado.
+     `MatriculaTurmaProgramaHistorico` — lida de
+         v_historico_matricula_cotic pelo ETL.
+
 ---
 
 ## Variáveis de ambiente

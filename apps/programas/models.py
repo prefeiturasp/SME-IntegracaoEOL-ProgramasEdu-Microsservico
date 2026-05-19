@@ -1,25 +1,4 @@
-"""Models read-only do domínio Programas — banco programas_db.
-
-As tabelas são criadas e mantidas pelo SME-IntegracaoEOL-MS-ETL.
-Este microsserviço apenas LÊ — todos os models declaram
-``Meta.managed = False`` para impedir geração/aplicação de migrations
-nesta aplicação. DDL é responsabilidade exclusiva do MS-ETL.
-
-Hierarquia (espelha o MS-ETL):
-    TipoPrograma
-        └── TurmaPrograma
-                ├── TurmaProgramaComponenteCurricular
-                └── MatriculaTurmaPrograma
-
-    ComponenteCurricularPrograma   (configuração — substitui constantes
-                                    hardcoded do Pedagogico-API legado)
-
-    MatriculaTurmaProgramaHistorico (lida de v_historico_matricula_cotic
-                                     pelo ETL — usada no EP-05)
-
-    AlunoPapAnoLetivo               (pré-agregada PAP — carga live)
-    AlunoPapAnoLetivoHistorico      (pré-agregada PAP — carga histórica)
-"""
+"""Models read-only do domínio Programas."""
 
 from django.db import models
 
@@ -27,7 +6,7 @@ from apps.programas.enums import CategoriaPrograma
 
 
 class TipoPrograma(models.Model):
-    """Subtipos de programa do EOL (cd_tipo_programa) por categoria."""
+    """Subtipos de programa por categoria (PAP/PAEE)."""
 
     codigo_tipo_programa = models.IntegerField(primary_key=True)
     nome = models.CharField(max_length=100)
@@ -75,7 +54,7 @@ class ComponenteCurricularPrograma(models.Model):
 
 
 class TurmaPrograma(models.Model):
-    """Turmas de programa (cd_tipo_turma=3 no EOL)."""
+    """Turmas de programa."""
 
     codigo_turma = models.BigIntegerField(unique=True)
     nome_turma = models.CharField(max_length=200)
@@ -165,12 +144,7 @@ class MatriculaTurmaPrograma(models.Model):
 
 
 class MatriculaTurmaProgramaHistorico(models.Model):
-    """Matrículas históricas de alunos em turmas de programa, por componente.
-
-    Espelha MatriculaTurmaPrograma, mas é populada pelo ETL a partir de
-    ``v_historico_matricula_cotic``. Usada no EP-05
-    (pap/ano-letivo/{ano_letivo}) para retornar dados coerentes com o legado.
-    """
+    """Matrículas históricas de alunos em turmas de programa."""
 
     codigo_aluno = models.BigIntegerField()
     codigo_turma = models.BigIntegerField()

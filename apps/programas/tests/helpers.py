@@ -19,7 +19,7 @@ NOME_PROJETO_COLABORATIVO = "PAP PROJETO COLABORATIVO"
 
 
 def agora() -> datetime:
-    """Datetime fixo usado em ``criado_em`` / ``atualizado_em``."""
+    """Retorna um datetime fixo para os testes."""
     return datetime(2026, 4, 1, tzinfo=UTC)
 
 
@@ -68,9 +68,7 @@ def seed_tipos() -> None:
 
 
 def seed_turmas() -> dict[int, TurmaPrograma]:
-    """Cria turmas PAP e PAEE de teste e retorna
-    um dict indexado por codigo_turma.
-    """
+    """Cria turmas PAP e PAEE de teste indexadas por codigo_turma."""
     turmas: dict[int, TurmaPrograma] = {}
     turmas[3082743] = TurmaPrograma.objects.create(
         codigo_turma=3082743,
