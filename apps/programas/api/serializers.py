@@ -8,8 +8,6 @@ from rest_framework import serializers
 class TurmaSrmRegularDoAlunoSerializer(serializers.Serializer):
     """Serializa turmas SRM/regular do aluno PAEE."""
 
-    # Shape reduzido de propósito: dados de aluno e pedagógicos são de
-    # outros domínios e entram na agregação feita fora deste serializer.
     codigo_aluno = serializers.IntegerField()
     codigo_turma = serializers.IntegerField()
     ano_letivo = serializers.IntegerField()
@@ -65,8 +63,6 @@ class DadosSrmPaeeColaborativoSerializer(serializers.Serializer):
     componente = serializers.CharField()
     codigo_componente = serializers.IntegerField()
     codigo_aluno = serializers.IntegerField()
-    # Exposto como string ("1") para manter o contrato do legado, que
-    # retornava o valor de st_matricula como char.
     situacao_matricula = serializers.CharField()
     data_matricula = serializers.DateField()
 
@@ -81,8 +77,7 @@ class TurmasProgramaRequestSerializer(serializers.Serializer):
 
     def to_internal_value(self, data: Any) -> dict[str, Any]:
         """Aceita o corpo como lista crua e encapsula para validação."""
-        # O legado envia o body como lista crua [str, str, ...];
-        # encapsulamos em dict para o ListField validar normalmente.
+        
         if isinstance(data, list):
             data = {"codigos_turmas": data}
         return super().to_internal_value(data)

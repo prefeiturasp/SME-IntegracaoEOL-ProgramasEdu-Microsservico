@@ -146,9 +146,6 @@ class MatriculaTurmaPrograma(models.Model):
 class MatriculaTurmaProgramaHistorico(models.Model):
     """Matrículas históricas de alunos em turmas de programa."""
 
-    # Espelha MatriculaTurmaPrograma, mas é populada pelo ETL a partir
-    # de v_historico_matricula_cotic.
-
     codigo_aluno = models.BigIntegerField()
     codigo_turma = models.BigIntegerField()
     codigo_componente_curricular = models.BigIntegerField()

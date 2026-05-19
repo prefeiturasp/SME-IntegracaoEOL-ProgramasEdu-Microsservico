@@ -102,7 +102,6 @@ class EP02TurmasPapTestCase(TestCase):
         self.assertEqual(resp.status_code, 200)
         body = resp.json()
         self.assertEqual(len(body), 2)
-        # Ordem alfabética por nome_turma curto: "ID" antes de "LC"
         self.assertEqual(body[0]["codigo_turma"], "3172713")
         self.assertEqual(
             body[0]["turma_nome"],
@@ -235,7 +234,7 @@ class EP07DadosSrmPaeeColaborativoTestCase(TestCase):
         self.assertEqual(item["codigo_turma"], 3105288)
         self.assertEqual(item["codigo_escola"], "092959")
         self.assertEqual(item["turno"], "Tarde")
-        self.assertEqual(item["situacao_matricula"], "1")  # fiel ao legado
+        self.assertEqual(item["situacao_matricula"], "1")
 
 
 class EP08TurmasProgramaTestCase(TestCase):

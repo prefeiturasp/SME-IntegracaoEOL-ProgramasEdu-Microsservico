@@ -14,9 +14,6 @@ from apps.programas.api.views import (
 )
 
 urlpatterns = [
-    # ------------------------------------------------------------------
-    # AlunoController do legado → /api/alunos/...
-    # ------------------------------------------------------------------
     path(
         "alunos/paee/turma-srm-e-regular/aluno/<str:codigo_aluno>",
         ObterTurmaSrmERegularDoAlunoView.as_view(),
@@ -53,9 +50,6 @@ urlpatterns = [
         ObterDadosSrmPaeeColaborativoView.as_view(),
         name="obter-dados-srm-paee-colaborativo",
     ),
-    # ------------------------------------------------------------------
-    # TurmaController do legado → /api/turmas/...
-    # ------------------------------------------------------------------
     path(
         "turmas/turmas-programa",
         ObterTurmasProgramaView.as_view(),
