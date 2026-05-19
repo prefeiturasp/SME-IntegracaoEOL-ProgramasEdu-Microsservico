@@ -34,9 +34,6 @@ def _to_int(valor: str, nome_param: str) -> int:
         ) from exc
 
 
-# ---------------------------------------------------------------------------
-# EP-01 — GET /paee/turma-srm-e-regular/aluno/{codigo_aluno}
-# ---------------------------------------------------------------------------
 class ObterTurmaSrmERegularDoAlunoView(APIView):
     """Retorna as turmas SRM e regular de um aluno PAEE."""
 
@@ -69,9 +66,6 @@ class ObterTurmaSrmERegularDoAlunoView(APIView):
         )
 
 
-# ---------------------------------------------------------------------------
-# EP-02 — GET /turmas-pap/{ano_letivo}/ues/{codigo_escola}
-# ---------------------------------------------------------------------------
 class ObterTurmasPapView(APIView):
     """Lista turmas PAP de uma UE em um ano letivo."""
 
@@ -100,9 +94,6 @@ class ObterTurmasPapView(APIView):
         return Response(TurmaPapResumoSerializer(dados, many=True).data)
 
 
-# ---------------------------------------------------------------------------
-# EP-03 — GET /alunos-pap/{ano_letivo}
-# ---------------------------------------------------------------------------
 class VerificarSeAlunosSaoTurmaProgramaPapView(APIView):
     """Verifica quais alunos pertencem a turmas PAP no ano."""
 
@@ -151,9 +142,6 @@ class VerificarSeAlunosSaoTurmaProgramaPapView(APIView):
         return Response(AlunoTurmaProgramaPapSerializer(dados, many=True).data)
 
 
-# ---------------------------------------------------------------------------
-# EP-04 — GET /pap/ano-corrente
-# ---------------------------------------------------------------------------
 class ObterAlunosPapAnoCorrenteView(APIView):
     """Lista alunos PAP do ano corrente."""
 
@@ -163,20 +151,12 @@ class ObterAlunosPapAnoCorrenteView(APIView):
         responses={200: AlunoTurmaPapSerializer(many=True)},
     )
     def get(self, request: Request) -> HttpResponse:
-        # O service devolve JSON pronto (json_agg no Postgres) e o
-        # GZipMiddleware global comprime com Content-Length correto.
-        # Streaming foi descartado: o WSGIServer (runserver) não emite
-        # Transfer-Encoding: chunked e o Chrome falha a renderizar
-        # respostas grandes sem length nem chunked.
         return HttpResponse(
             services.obter_alunos_pap_ano_corrente_json(),
             content_type="application/json",
         )
 
 
-# ---------------------------------------------------------------------------
-# EP-05 — GET /pap/ano-letivo/{ano_letivo}
-# ---------------------------------------------------------------------------
 class ObterAlunosPapPorAnoLetivoView(APIView):
     """Lista alunos PAP por ano letivo."""
 
@@ -204,10 +184,6 @@ class ObterAlunosPapPorAnoLetivoView(APIView):
         )
 
 
-# -------------------------------------------------------------------
-# EP-06 — GET
-# /{codigo_aluno}/turmas-programa/{ano_letivo}/componentes-curriculares
-# -------------------------------------------------------------------
 class ObterComponentesCurricularesTurmasProgramaAlunoView(APIView):
     """Lista componentes curriculares das turmas de programa do aluno."""
 
@@ -239,9 +215,6 @@ class ObterComponentesCurricularesTurmasProgramaAlunoView(APIView):
         )
 
 
-# ---------------------------------------------------------------------------
-# EP-07 — GET /srm-paee/aluno/{codigo_aluno}
-# ---------------------------------------------------------------------------
 class ObterDadosSrmPaeeColaborativoView(APIView):
     """Retorna dados de SRM/PAEE colaborativo do aluno."""
 
@@ -267,9 +240,6 @@ class ObterDadosSrmPaeeColaborativoView(APIView):
         )
 
 
-# ---------------------------------------------------------------------------
-# EP-08 — POST /turmas/turmas-programa
-# ---------------------------------------------------------------------------
 class ObterTurmasProgramaView(APIView):
     """Filtra os códigos de turma que são turmas de programa."""
 
