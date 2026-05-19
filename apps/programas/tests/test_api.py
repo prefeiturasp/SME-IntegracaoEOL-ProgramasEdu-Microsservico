@@ -1,4 +1,4 @@
-"""Testes dos endpoints HTTP do app programas (EP-01 a EP-08)."""
+"""Testes dos endpoints HTTP do app programas."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ def _autenticado() -> APIClient:
 
 
 def _body_json(resp: Any) -> Any:
-    """resp.json() falha em StreamingHttpResponse — drena os chunks à mão."""
+    """Lê o corpo JSON da resposta, inclusive em StreamingHttpResponse."""
     if isinstance(resp, StreamingHttpResponse):
         return json.loads(b"".join(resp.streaming_content).decode("utf-8"))
     return resp.json()

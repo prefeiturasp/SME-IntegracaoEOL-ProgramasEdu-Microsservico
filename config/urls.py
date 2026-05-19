@@ -1,4 +1,4 @@
-"""URL principal do projeto Django — SME-SGP-MS-Professores."""
+"""Rotas principais do SME-IntegracaoEOL-ProgramasEdu-Microsservico."""
 
 from django.contrib import admin
 from django.urls import include, path

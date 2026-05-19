@@ -1,20 +1,4 @@
-"""Rotas da API do domínio Programas.
-
-Os paths replicam o contrato dos endpoints legados do
-SME-Pedagogico-API:
-
-GET  /api/alunos/paee/turma-srm-e-regular/aluno/{codigo_aluno}
-GET  /api/alunos/turmas-pap/{ano_letivo}/ues/{codigo_escola}
-GET  /api/alunos/alunos-pap/{ano_letivo}
-GET  /api/alunos/pap/ano-corrente
-GET  /api/alunos/pap/ano-letivo/{ano_letivo}
-GET  /api/alunos/{codigo_aluno}/turmas-programa/{ano_letivo}/componentes-curriculares
-GET  /api/alunos/srm-paee/aluno/{codigo_aluno}
-POST /api/turmas/turmas-programa
-
-Os 7 primeiros endpoints (do AlunoController do legado) ficam sob
-``alunos/``; o EP-08 (do TurmaController) fica sob ``turmas/``.
-"""
+"""Rotas da API do domínio Programas."""
 
 from django.urls import path
 

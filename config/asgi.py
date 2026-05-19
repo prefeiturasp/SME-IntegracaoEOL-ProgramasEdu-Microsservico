@@ -1,4 +1,4 @@
-"""ASGI config para SME-SGP-MS-Professores."""
+"""Configuração ASGI do SME-IntegracaoEOL-ProgramasEdu-Microsservico."""
 
 import os
 

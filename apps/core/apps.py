@@ -1,10 +1,10 @@
-"""Configuracao do app core."""
+"""Configuração do app core."""
 
 from django.apps import AppConfig
 
 
 class CoreConfig(AppConfig):
-    """App de utilitarios compartilhados."""
+    """App de utilitários compartilhados."""
 
     default_auto_field = "django.db.models.BigAutoField"
     name = "apps.core"
