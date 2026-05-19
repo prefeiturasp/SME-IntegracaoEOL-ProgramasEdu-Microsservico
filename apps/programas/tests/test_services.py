@@ -26,8 +26,6 @@ class ObterTurmasPaeeDoAlunoTestCase(TestCase):
         self.assertEqual(item.codigo_aluno, 5285836)
         self.assertEqual(item.codigo_turma, 3105288)
         self.assertEqual(item.tipo_turno, 2)
-        # EP-01 não concatena descrição da grade — preserva apenas
-        # nome_turma (o turmaNome agregado é usado pelo EP-02).
         self.assertEqual(item.turma_nome, "SD")
         self.assertEqual(item.codigo_situacao_matricula, 1)
         self.assertEqual(item.situacao_matricula, "Ativo")
@@ -207,7 +205,7 @@ class ObterDadosSrmPaeeAlunoTestCase(TestCase):
         self.assertEqual(item.turno, "Tarde")
         self.assertEqual(item.componente, "SRM")
         self.assertEqual(item.codigo_componente, 1030)
-        self.assertEqual(item.situacao_matricula, "1")  # string
+        self.assertEqual(item.situacao_matricula, "1")
 
     def test_aluno_sem_srm_retorna_vazio(self) -> None:
         seed_matriculas()

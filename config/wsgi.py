@@ -1,4 +1,4 @@
-"""WSGI config para SME-SGP-MS-Professores."""
+"""Configuração WSGI do SME-IntegracaoEOL-ProgramasEdu-Microsservico."""
 
 import os
 

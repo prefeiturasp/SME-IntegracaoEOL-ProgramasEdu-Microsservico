@@ -1,12 +1,4 @@
-"""Views do domínio Programas (EP-01 a EP-08).
-
-Substituem os endpoints legados do Pedagogico-API que hoje consultam
-EOL/Elastic. Os dados vêm de programas_db, populado pelo
-SME-IntegracaoEOL-MS-ETL.
-
-EP-01 retorna shape reduzido — campos de aluno/pedagógico ausentes
-são agregados pelo Transition Gateway.
-"""
+"""Views do domínio Programas."""
 
 from django.http import HttpResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -32,9 +24,7 @@ _TAG_TURMAS = ["Programas — Turmas"]
 
 
 def _to_int(valor: str, nome_param: str) -> int:
-    """Faz a conversão do path param para int ou retorna
-    ValueError com contexto.
-    """
+    """Retorna o path param convertido para int ou levanta ValueError."""
     try:
         return int(valor)
     except (TypeError, ValueError) as exc:
@@ -44,11 +34,8 @@ def _to_int(valor: str, nome_param: str) -> int:
         ) from exc
 
 
-# ---------------------------------------------------------------------------
-# EP-01 — GET /paee/turma-srm-e-regular/aluno/{codigo_aluno}
-# ---------------------------------------------------------------------------
 class ObterTurmaSrmERegularDoAlunoView(APIView):
-    """Obter turmas SRM e regular de um aluno PAEE."""
+    """Retorna as turmas SRM e regular de um aluno PAEE."""
 
     @extend_schema(
         tags=_TAG_PAEE,
@@ -79,11 +66,8 @@ class ObterTurmaSrmERegularDoAlunoView(APIView):
         )
 
 
-# ---------------------------------------------------------------------------
-# EP-02 — GET /turmas-pap/{ano_letivo}/ues/{codigo_escola}
-# ---------------------------------------------------------------------------
 class ObterTurmasPapView(APIView):
-    """Listar turmas PAP de uma UE em um ano letivo."""
+    """Lista turmas PAP de uma UE em um ano letivo."""
 
     @extend_schema(
         tags=_TAG_PAP,
@@ -110,14 +94,8 @@ class ObterTurmasPapView(APIView):
         return Response(TurmaPapResumoSerializer(dados, many=True).data)
 
 
-# ---------------------------------------------------------------------------
-# EP-03 — GET /alunos-pap/{ano_letivo}
-# ---------------------------------------------------------------------------
 class VerificarSeAlunosSaoTurmaProgramaPapView(APIView):
-    """Verificar quais alunos pertencem a turmas PAP em um ano.
-
-    Recebe a lista de ``codigos_alunos`` via query param repetido.
-    """
+    """Verifica quais alunos pertencem a turmas PAP no ano."""
 
     @extend_schema(
         tags=_TAG_PAP,
@@ -161,23 +139,11 @@ class VerificarSeAlunosSaoTurmaProgramaPapView(APIView):
         dados = services.verificar_alunos_em_turma_pap(
             ano_letivo=ano, codigos_alunos=codigos
         )
-        return Response(
-            AlunoTurmaProgramaPapSerializer(dados, many=True).data
-        )
+        return Response(AlunoTurmaProgramaPapSerializer(dados, many=True).data)
 
 
-# ---------------------------------------------------------------------------
-# EP-04 — GET /pap/ano-corrente
-# ---------------------------------------------------------------------------
 class ObterAlunosPapAnoCorrenteView(APIView):
-    """Listar alunos PAP do ano corrente.
-
-    Serialização via ``json_agg`` no Postgres + ``GZipMiddleware`` global:
-    o banco devolve o JSON pronto, o middleware comprime e o response
-    sai com ``Content-Length`` correto. Streaming foi descartado porque
-    o ``WSGIServer`` (runserver) não emite ``Transfer-Encoding: chunked``,
-    e Chrome falha a renderizar respostas grandes sem length nem chunked.
-    """
+    """Lista alunos PAP do ano corrente."""
 
     @extend_schema(
         tags=_TAG_PAP,
@@ -191,11 +157,8 @@ class ObterAlunosPapAnoCorrenteView(APIView):
         )
 
 
-# ---------------------------------------------------------------------------
-# EP-05 — GET /pap/ano-letivo/{ano_letivo}
-# ---------------------------------------------------------------------------
 class ObterAlunosPapPorAnoLetivoView(APIView):
-    """Listar alunos PAP por ano letivo (mesma estratégia do EP-04)."""
+    """Lista alunos PAP por ano letivo."""
 
     @extend_schema(
         tags=_TAG_PAP,
@@ -221,18 +184,12 @@ class ObterAlunosPapPorAnoLetivoView(APIView):
         )
 
 
-# -------------------------------------------------------------------
-# EP-06 — GET
-# /{codigo_aluno}/turmas-programa/{ano_letivo}/componentes-curriculares
-# -------------------------------------------------------------------
 class ObterComponentesCurricularesTurmasProgramaAlunoView(APIView):
-    """Componentes curriculares das turmas de programa do aluno."""
+    """Lista componentes curriculares das turmas de programa do aluno."""
 
     @extend_schema(
         tags=_TAG_PAP,
-        summary=(
-            "Componentes curriculares das turmas de programa do aluno"
-        ),
+        summary=("Componentes curriculares das turmas de programa do aluno"),
         parameters=[
             OpenApiParameter("codigo_aluno", str, OpenApiParameter.PATH),
             OpenApiParameter("ano_letivo", int, OpenApiParameter.PATH),
@@ -258,11 +215,8 @@ class ObterComponentesCurricularesTurmasProgramaAlunoView(APIView):
         )
 
 
-# ---------------------------------------------------------------------------
-# EP-07 — GET /srm-paee/aluno/{codigo_aluno}
-# ---------------------------------------------------------------------------
 class ObterDadosSrmPaeeColaborativoView(APIView):
-    """Dados de SRM/PAEE colaborativo do aluno."""
+    """Retorna dados de SRM/PAEE colaborativo do aluno."""
 
     @extend_schema(
         tags=_TAG_PAEE,
@@ -286,15 +240,8 @@ class ObterDadosSrmPaeeColaborativoView(APIView):
         )
 
 
-# ---------------------------------------------------------------------------
-# EP-08 — POST /turmas/turmas-programa
-# ---------------------------------------------------------------------------
 class ObterTurmasProgramaView(APIView):
-    """Filtrar códigos de turma que são turmas de programa.
-
-    Body: lista de strings (códigos de turma) — fiel ao contrato legado
-    (``IEnumerable<string>``).
-    """
+    """Filtra os códigos de turma que são turmas de programa."""
 
     @extend_schema(
         tags=_TAG_TURMAS,
