@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 
 from django.test import TestCase
 
@@ -88,7 +88,7 @@ class MatriculaTurmaProgramaTestCase(TestCase):
             nome_componente_curricular="PAP",
             codigo_situacao_matricula=1,
             descricao_situacao_matricula="Ativo",
-            data_matricula=date(2026, 2, 1),
+            data_matricula=datetime(2026, 2, 1, 11, 51, 46, 820000),
             ano_letivo=2026,
             codigo_ue="019660",
             codigo_dre="108400",

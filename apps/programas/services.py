@@ -95,7 +95,7 @@ class DadosSrmPaeeColaborativoDTO:
     codigo_componente: int
     codigo_aluno: int
     situacao_matricula: str
-    data_matricula: datetime | date
+    data_matricula: datetime
 
 
 def obter_turmas_paee_do_aluno(
