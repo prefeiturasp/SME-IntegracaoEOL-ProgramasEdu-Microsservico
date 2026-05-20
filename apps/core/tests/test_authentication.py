@@ -18,6 +18,8 @@ def _make_drf_request(factory, headers=None):
 
 
 class TestUsuarioApiKey(TestCase):
+    """Valida o pseudo-usuário retornado pela autenticação por API key."""
+
     def test_campos_padrao(self):
         """Verifica os valores padrão do usuário de API key."""
         usuario = UsuarioApiKey()
@@ -33,6 +35,8 @@ class TestUsuarioApiKey(TestCase):
 
 
 class TestApiKeyAuthentication(TestCase):
+    """Valida o fluxo de autenticação por API key."""
+
     def setUp(self):
         """Configura a autenticação e o RequestFactory dos testes."""
         self.auth = ApiKeyAuthentication()

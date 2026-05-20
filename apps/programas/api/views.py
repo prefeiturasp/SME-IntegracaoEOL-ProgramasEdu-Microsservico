@@ -24,7 +24,18 @@ _TAG_TURMAS = ["Programas — Turmas"]
 
 
 def _to_int(valor: str, nome_param: str) -> int:
-    """Retorna o path param convertido para int ou levanta ValueError."""
+    """Converte um path param para inteiro.
+
+    Args:
+        valor: Valor recebido na URL.
+        nome_param: Nome do parâmetro, usado na mensagem de erro.
+
+    Returns:
+        Valor convertido para inteiro.
+
+    Raises:
+        ValueError: Se ``valor`` não puder ser convertido.
+    """
     try:
         return int(valor)
     except (TypeError, ValueError) as exc:

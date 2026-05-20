@@ -22,7 +22,10 @@ from apps.programas.tests.helpers import agora
 
 
 class TipoProgramaTestCase(TestCase):
+    """Valida representação e mapeamento do model TipoPrograma."""
+
     def test_str(self) -> None:
+        """Verifica a string amigável do tipo de programa."""
         tipo = TipoPrograma(
             codigo_tipo_programa=649,
             nome="PAP Recuperação",
@@ -31,11 +34,15 @@ class TipoProgramaTestCase(TestCase):
         self.assertEqual(str(tipo), "PAP Recuperação (649)")
 
     def test_db_table(self) -> None:
+        """Verifica o nome da tabela mapeada."""
         self.assertEqual(TipoPrograma._meta.db_table, "tipo_programa")
 
 
 class ComponenteCurricularProgramaTestCase(TestCase):
+    """Valida representação do model ComponenteCurricularPrograma."""
+
     def test_str_inclui_categoria(self) -> None:
+        """Verifica que a string amigável inclui nome, código e categoria."""
         comp = ComponenteCurricularPrograma(
             codigo_componente_curricular=1770,
             nome_componente_curricular="PAP PROJETO COLABORATIVO",
@@ -49,7 +56,10 @@ class ComponenteCurricularProgramaTestCase(TestCase):
 
 
 class TurmaProgramaTestCase(TestCase):
+    """Valida representação do model TurmaPrograma."""
+
     def test_str_inclui_codigo_e_ano(self) -> None:
+        """Verifica se a string amigável inclui código da turma e ano."""
         turma = TurmaPrograma(
             codigo_turma=3082743,
             nome_turma="2A PAP",
@@ -64,7 +74,10 @@ class TurmaProgramaTestCase(TestCase):
 
 
 class TurmaProgramaComponenteCurricularTestCase(TestCase):
+    """Valida representação do model TurmaProgramaComponenteCurricular."""
+
     def test_str(self) -> None:
+        """Verifica que a string amigável inclui turma e componente."""
         registro = TurmaProgramaComponenteCurricular(
             codigo_turma=3082743,
             codigo_componente_curricular=1770,
@@ -78,7 +91,10 @@ class TurmaProgramaComponenteCurricularTestCase(TestCase):
 
 
 class MatriculaTurmaProgramaTestCase(TestCase):
+    """Valida representação do model MatriculaTurmaPrograma."""
+
     def test_str(self) -> None:
+        """Verifica que a string amigável inclui aluno, turma e componente."""
         matricula = MatriculaTurmaPrograma(
             codigo_aluno=6730137,
             codigo_turma=3082743,
@@ -100,10 +116,14 @@ class MatriculaTurmaProgramaTestCase(TestCase):
 
 
 class SituacaoTurmaGetDescricaoTestCase(TestCase):
+    """Valida a tradução de códigos em SituacaoTurma.get_descricao."""
+
     def test_none_retorna_nao_informada(self) -> None:
+        """Verifica que código None resulta em 'Não Informada'."""
         self.assertEqual(SituacaoTurma.get_descricao(None), "Não Informada")
 
     def test_codigos_validos(self) -> None:
+        """Verifica a tradução de cada código válido de situação de turma."""
         casos = [
             ("O", "Organizada"),
             ("A", "Não Organizada"),
@@ -115,27 +135,35 @@ class SituacaoTurmaGetDescricaoTestCase(TestCase):
                 self.assertEqual(SituacaoTurma.get_descricao(codigo), esperado)
 
     def test_codigo_desconhecido_retorna_desconhecido(self) -> None:
+        """Verifica que código fora do enum resulta em 'Desconhecido'."""
         self.assertEqual(SituacaoTurma.get_descricao("X"), "Desconhecido")
 
 
 class SituacaoMatriculaGetDescricaoTestCase(TestCase):
+    """Valida a tradução de códigos em SituacaoMatricula.get_descricao."""
+
     def test_none_retorna_nao_informada(self) -> None:
+        """Verifica que código None resulta em 'Não Informada'."""
         self.assertEqual(
             SituacaoMatricula.get_descricao(None), "Não Informada"
         )
 
     def test_codigo_nao_numerico_retorna_desconhecido(self) -> None:
+        """Verifica que strings não numéricas resultam em 'Desconhecido'."""
         self.assertEqual(
             SituacaoMatricula.get_descricao("abc"), "Desconhecido"
         )
 
     def test_codigo_int_valido(self) -> None:
+        """Verifica a tradução de um código inteiro válido."""
         self.assertEqual(SituacaoMatricula.get_descricao(1), "Ativo")
 
     def test_codigo_string_numerica(self) -> None:
+        """Verifica que strings numéricas são aceitas como código."""
         self.assertEqual(SituacaoMatricula.get_descricao("5"), "Concluído")
 
     def test_todos_os_codigos_validos(self) -> None:
+        """Verifica a tradução de todos os códigos de situação de matrícula."""
         esperados = {
             1: "Ativo",
             2: "Desistente",
@@ -161,4 +189,5 @@ class SituacaoMatriculaGetDescricaoTestCase(TestCase):
                 )
 
     def test_codigo_inteiro_desconhecido_retorna_desconhecido(self) -> None:
+        """Verifica que código fora do enum resulta em 'Desconhecido'."""
         self.assertEqual(SituacaoMatricula.get_descricao(99), "Desconhecido")
