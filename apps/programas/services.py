@@ -21,8 +21,8 @@ from apps.programas.models import (
     AlunoPapAnoLetivoHistorico,
     ComponenteCurricularPrograma,
     MatriculaTurmaPrograma,
+    MatriculaTurmaProgramaHistorico,
     TurmaPrograma,
-    MatriculaTurmaProgramaHistorico
 )
 
 # ---------------------------------------------------------------------------
@@ -289,18 +289,14 @@ def _query_alunos_pap_snake(
 def obter_alunos_pap_ano_corrente_json() -> bytes:
     """Retorna em JSON (bytes) os alunos PAP do ano corrente."""
     ano_corrente = timezone.now().year
-    return _consultar_alunos_pap_json(
-        ano_letivo=ano_corrente, historico=False
-    )
+    return _consultar_alunos_pap_json(ano_letivo=ano_corrente, historico=False)
 
 
 def obter_alunos_pap_por_ano_json(ano_letivo: int) -> bytes:
     """Retorna em JSON (bytes) os alunos PAP de um ano encerrado."""
     if ano_letivo >= timezone.now().year:
         return b"[]"
-    return _consultar_alunos_pap_json(
-        ano_letivo=ano_letivo, historico=True
-    )
+    return _consultar_alunos_pap_json(ano_letivo=ano_letivo, historico=True)
 
 
 _SQL_ALUNOS_PAP_ATUAL = """
@@ -341,19 +337,13 @@ def _consultar_alunos_pap_json(
         AlunoPapAnoLetivoHistorico if historico else AlunoPapAnoLetivo
     )
     if connection.vendor == "postgresql":
-        sql = (
-            _SQL_ALUNOS_PAP_HISTORICO
-            if historico
-            else _SQL_ALUNOS_PAP_ATUAL
-        )
+        sql = _SQL_ALUNOS_PAP_HISTORICO if historico else _SQL_ALUNOS_PAP_ATUAL
         with connection.cursor() as cur:
             cur.execute(sql, {"ano_letivo": ano_letivo})
             row = cur.fetchone()
         texto = row[0] if row and row[0] is not None else "[]"
         return (
-            texto.encode("utf-8")
-            if isinstance(texto, str)
-            else bytes(texto)
+            texto.encode("utf-8") if isinstance(texto, str) else bytes(texto)
         )
     qs = model.objects.filter(ano_letivo=ano_letivo).values(
         "ano_letivo",
@@ -467,6 +457,13 @@ def obter_dados_srm_paee_aluno(
 
     resultado: list[DadosSrmPaeeColaborativoDTO] = []
     for linha in qs:
+        data_matricula = linha["data_matricula"]
+        if isinstance(data_matricula, date) and not isinstance(
+            data_matricula, datetime
+        ):
+            data_matricula = datetime.combine(
+                data_matricula, datetime.min.time()
+            )
         resultado.append(
             DadosSrmPaeeColaborativoDTO(
                 codigo_turma=linha["codigo_turma"],
@@ -476,7 +473,7 @@ def obter_dados_srm_paee_aluno(
                 codigo_componente=linha["codigo_componente_curricular"],
                 codigo_aluno=linha["codigo_aluno"],
                 situacao_matricula=str(linha["codigo_situacao_matricula"]),
-                data_matricula=linha["data_matricula"],
+                data_matricula=data_matricula,
             )
         )
     return resultado
