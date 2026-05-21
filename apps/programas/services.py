@@ -174,7 +174,16 @@ def listar_turmas_pap_da_ue(
 def verificar_alunos_em_turma_pap(
     ano_letivo: int, codigos_alunos: Sequence[int]
 ) -> list[AlunoTurmaProgramaPapDTO]:
-    """Verifica quais dos alunos informados pertencem a turmas PAP."""
+    """Verifica quais dos alunos informados pertencem a turmas PAP.
+
+    Args:
+        ano_letivo: Ano letivo da consulta.
+        codigos_alunos: Códigos a verificar. Lista vazia retorna ``[]``.
+
+    Returns:
+        Apenas os alunos com matrícula ativa em turma/componente PAP
+        vigente.
+    """
     if not codigos_alunos:
         return []
 
@@ -218,7 +227,15 @@ def listar_alunos_pap_ano_corrente() -> list[AlunoTurmaPapDTO]:
 
 
 def listar_alunos_pap_por_ano(ano_letivo: int) -> list[AlunoTurmaPapDTO]:
-    """Lista os alunos PAP de um ano letivo já encerrado."""
+    """Lista os alunos PAP de um ano letivo já encerrado.
+
+    Args:
+        ano_letivo: Ano letivo encerrado a consultar.
+
+    Returns:
+        Alunos PAP do ano. Vazio quando ``ano_letivo`` é o ano corrente
+        ou futuro.
+    """
     if ano_letivo >= timezone.now().year:
         return []
     return _consultar_alunos_pap(
@@ -308,7 +325,14 @@ def obter_alunos_pap_ano_corrente_json() -> bytes:
 
 
 def obter_alunos_pap_por_ano_json(ano_letivo: int) -> bytes:
-    """Retorna em JSON (bytes) os alunos PAP de um ano encerrado."""
+    """Retorna em JSON (bytes) os alunos PAP de um ano encerrado.
+
+    Args:
+        ano_letivo: Ano letivo encerrado a consultar.
+
+    Returns:
+        Array JSON em bytes. ``b"[]"`` quando o ano é o corrente ou futuro.
+    """
     if ano_letivo >= timezone.now().year:
         return b"[]"
     return _consultar_alunos_pap_json(
@@ -519,7 +543,15 @@ def obter_dados_srm_paee_aluno(
 def filtrar_codigos_que_sao_turma_programa(
     codigos_turmas: Sequence[str],
 ) -> list[str]:
-    """Filtra os códigos informados que são turmas de programa."""
+    """Filtra os códigos informados que são turmas de programa.
+
+    Args:
+        codigos_turmas: Códigos candidatos. Itens não numéricos são
+            ignorados silenciosamente.
+
+    Returns:
+        Códigos que existem como turma de programa.
+    """
     if not codigos_turmas:
         return []
 

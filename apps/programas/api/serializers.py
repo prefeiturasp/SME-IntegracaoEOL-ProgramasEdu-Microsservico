@@ -76,8 +76,14 @@ class TurmasProgramaRequestSerializer(serializers.Serializer):
     )
 
     def to_internal_value(self, data: Any) -> dict[str, Any]:
-        """Aceita o corpo como lista crua e encapsula para validação."""
-        
+        """Aceita o corpo como lista crua e encapsula para validação.
+
+        Args:
+            data: Corpo recebido, podendo ser uma lista pura de códigos.
+
+        Returns:
+            Dicionário validado no formato esperado pelo serializer.
+        """
         if isinstance(data, list):
             data = {"codigos_turmas": data}
         return super().to_internal_value(data)

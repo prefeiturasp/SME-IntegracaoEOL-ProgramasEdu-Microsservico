@@ -22,7 +22,15 @@ class SituacaoTurma(StrEnum):
 
     @classmethod
     def get_descricao(cls, codigo: str | None) -> str:
-        """Retorna a descrição amigável para o código."""
+        """Retorna a descrição amigável para o código.
+
+        Args:
+            codigo: Código da situação. ``None`` é aceito.
+
+        Returns:
+            Descrição correspondente. ``"Não Informada"`` quando ``codigo``
+            é ``None`` e ``"Desconhecido"`` para códigos fora do enum.
+        """
         if codigo is None:
             return "Não Informada"
 
@@ -60,7 +68,16 @@ class SituacaoMatricula(IntEnum):
 
     @classmethod
     def get_descricao(cls, codigo: int | str | None) -> str:
-        """Retorna a descrição amigável para o código."""
+        """Retorna a descrição amigável para o código.
+
+        Args:
+            codigo: Código inteiro ou string numérica. ``None`` é aceito.
+
+        Returns:
+            Descrição correspondente. ``"Não Informada"`` quando ``codigo``
+            é ``None`` e ``"Desconhecido"`` para valores não numéricos ou
+            fora do enum.
+        """
         if codigo is None:
             return "Não Informada"
 
