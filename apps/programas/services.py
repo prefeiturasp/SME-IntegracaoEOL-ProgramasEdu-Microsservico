@@ -101,7 +101,15 @@ class DadosSrmPaeeColaborativoDTO:
 def obter_turmas_paee_do_aluno(
     codigo_aluno: int,
 ) -> list[TurmaSrmRegularDoAlunoDTO]:
-    """Lista as turmas PAEE em que o aluno está matriculado."""
+    """Lista as turmas PAEE em que o aluno está matriculado.
+
+    Args:
+        codigo_aluno: Aluno cujas matrículas PAEE serão consultadas.
+
+    Returns:
+        Turmas PAEE com matrícula em situação válida, ordenadas do ano
+        mais recente para o mais antigo.
+    """
     qs = (
         MatriculaTurmaPrograma.objects.filter(
             codigo_aluno=codigo_aluno,
@@ -148,7 +156,16 @@ def obter_turmas_paee_do_aluno(
 def listar_turmas_pap_da_ue(
     ano_letivo: int, codigo_ue: str
 ) -> list[TurmaPapResumoDTO]:
-    """Lista as turmas PAP de uma UE em um ano letivo."""
+    """Lista as turmas PAP de uma UE em um ano letivo.
+
+    Args:
+        ano_letivo: Ano letivo a consultar.
+        codigo_ue: Código da unidade educacional.
+
+    Returns:
+        Turmas PAP ativas da UE, ordenadas por nome. Cada nome já vem
+        concatenado à descrição da grade, quando existir.
+    """
     qs = (
         TurmaPrograma.objects.filter(
             ano_letivo=ano_letivo,
@@ -217,7 +234,12 @@ def verificar_alunos_em_turma_pap(
 
 
 def listar_alunos_pap_ano_corrente() -> list[AlunoTurmaPapDTO]:
-    """Lista os alunos PAP do ano corrente."""
+    """Lista os alunos PAP do ano corrente.
+
+    Returns:
+        Alunos PAP do ano corrente, lidos da tabela pré-agregada de carga
+        live.
+    """
     ano_corrente = timezone.now().year
     return _consultar_alunos_pap(AlunoPapAnoLetivo, ano_letivo=ano_corrente)
 
@@ -243,7 +265,15 @@ def _consultar_alunos_pap(
     model: type[AlunoPapAnoLetivo] | type[AlunoPapAnoLetivoHistorico],
     ano_letivo: int,
 ) -> list[AlunoTurmaPapDTO]:
-    """Consulta alunos PAP e mapeia para dataclasses."""
+    """Consulta alunos PAP e mapeia para dataclasses.
+
+    Args:
+        model: Tabela pré-agregada a consultar (carga live ou histórica).
+        ano_letivo: Ano letivo usado como filtro.
+
+    Returns:
+        Alunos PAP do ano informado convertidos para DTO.
+    """
     qs = model.objects.filter(ano_letivo=ano_letivo).values(
         "ano_letivo",
         "codigo_turma",
@@ -265,46 +295,12 @@ def _consultar_alunos_pap(
     ]
 
 
-def _query_alunos_pap_snake(
-    ano_letivo: int,
-    situacoes_matricula: Sequence[int],
-    situacoes_turma: Sequence[str],
-    historico: bool = False,
-) -> QuerySet:
-    """Monta o queryset base de alunos PAP em snake_case."""
-    model = (
-        MatriculaTurmaProgramaHistorico
-        if historico
-        else MatriculaTurmaPrograma
-    )
-
-    componentes_pap_vigentes = ComponenteCurricularPrograma.objects.filter(
-        categoria=CategoriaPrograma.PAP,
-        vigente=True,
-    ).values("codigo_componente_curricular")
-    turmas_ativas = TurmaPrograma.objects.filter(
-        situacao__in=situacoes_turma,
-        ano_letivo=ano_letivo,
-    ).values("codigo_turma")
-
-    return model.objects.filter(
-        ano_letivo=ano_letivo,
-        categoria=CategoriaPrograma.PAP,
-        codigo_componente_curricular__in=componentes_pap_vigentes,
-        codigo_situacao_matricula__in=list(situacoes_matricula),
-        codigo_turma__in=turmas_ativas,
-    ).values(
-        "ano_letivo",
-        "codigo_turma",
-        "codigo_ue",
-        "codigo_dre",
-        "codigo_aluno",
-        "codigo_componente_curricular",
-    )
-
-
 def obter_alunos_pap_ano_corrente_json() -> bytes:
-    """Retorna em JSON (bytes) os alunos PAP do ano corrente."""
+    """Retorna os alunos PAP do ano corrente já serializados em JSON.
+
+    Returns:
+        Array JSON em bytes pronto para resposta HTTP.
+    """
     ano_corrente = timezone.now().year
     return _consultar_alunos_pap_json(ano_letivo=ano_corrente, historico=False)
 
@@ -356,7 +352,15 @@ def _consultar_alunos_pap_json(
     ano_letivo: int,
     historico: bool = False,
 ) -> bytes:
-    """Devolve o array JSON de alunos PAP em bytes."""
+    """Devolve o array JSON de alunos PAP em bytes.
+
+    Args:
+        ano_letivo: Ano letivo usado como filtro.
+        historico: Quando ``True`` consulta a tabela de carga histórica.
+
+    Returns:
+        Array JSON em bytes. ``b"[]"`` quando não há registros.
+    """
     model: type[AlunoPapAnoLetivo] | type[AlunoPapAnoLetivoHistorico] = (
         AlunoPapAnoLetivoHistorico if historico else AlunoPapAnoLetivo
     )
@@ -395,32 +399,19 @@ def _consultar_alunos_pap_json(
     )
 
 
-def _consultar_alunos_pap_json_postgres(
-    ano_letivo: int,
-    situacoes_matricula: Sequence[int],
-    situacoes_turma: Sequence[str],
-    historico: bool = False,
-) -> bytes:
-    """Executa o json_agg no Postgres e devolve o TEXT pronto."""
-    sql = _SQL_ALUNOS_PAP_HISTORICO if historico else _SQL_ALUNOS_PAP_ATUAL
-    with connection.cursor() as cur:
-        cur.execute(
-            sql,
-            {
-                "ano_letivo": ano_letivo,
-                "situacoes_matricula": list(situacoes_matricula),
-                "situacoes_turma": list(situacoes_turma),
-            },
-        )
-        row = cur.fetchone()
-    texto = row[0] if row and row[0] is not None else "[]"
-    return texto.encode("utf-8") if isinstance(texto, str) else bytes(texto)
-
-
 def listar_componentes_turmas_aluno(
     codigo_aluno: int, ano_letivo: int
 ) -> list[ComponenteTurmaProgramaAlunoDTO]:
-    """Lista os componentes das turmas de programa do aluno no ano."""
+    """Lista os componentes das turmas de programa do aluno no ano.
+
+    Args:
+        codigo_aluno: Aluno cujas matrículas serão consultadas.
+        ano_letivo: Ano letivo usado como filtro.
+
+    Returns:
+        Componentes únicos das turmas de programa em que o aluno tem
+        matrícula em situação válida.
+    """
     qs = (
         MatriculaTurmaPrograma.objects.filter(
             codigo_aluno=codigo_aluno,
@@ -452,7 +443,14 @@ def listar_componentes_turmas_aluno(
 def obter_dados_srm_paee_aluno(
     codigo_aluno: int,
 ) -> list[DadosSrmPaeeColaborativoDTO]:
-    """Retorna os dados de SRM/PAEE colaborativo do aluno."""
+    """Retorna os dados de SRM/PAEE colaborativo do aluno.
+
+    Args:
+        codigo_aluno: Aluno cujas matrículas SRM/PAEE serão consultadas.
+
+    Returns:
+        Matrículas no componente SRM/PAEE com turno da turma associado.
+    """
     qs = (
         MatriculaTurmaPrograma.objects.filter(
             codigo_aluno=codigo_aluno,
