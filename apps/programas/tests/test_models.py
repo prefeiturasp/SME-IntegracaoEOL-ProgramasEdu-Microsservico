@@ -118,7 +118,10 @@ class MatriculaTurmaProgramaTestCase(TestCase):
 
 
 class AlunoPapAnoLetivoTestCase(TestCase):
+    """Valida representação e mapeamento do model AlunoPapAnoLetivo."""
+
     def test_str_e_db_table(self) -> None:
+        """Verifica a string amigável e o mapeamento read-only do model."""
         aluno = AlunoPapAnoLetivo(
             codigo_aluno=6730137,
             codigo_turma=3082743,
@@ -139,7 +142,10 @@ class AlunoPapAnoLetivoTestCase(TestCase):
 
 
 class AlunoPapAnoLetivoHistoricoTestCase(TestCase):
+    """Valida representação e mapeamento do model AlunoPapAnoLetivoHistorico."""
+
     def test_str_e_db_table(self) -> None:
+        """Verifica a string amigável e o mapeamento read-only do histórico."""
         aluno = AlunoPapAnoLetivoHistorico(
             codigo_aluno=6730137,
             codigo_turma=3082743,

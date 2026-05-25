@@ -64,6 +64,8 @@ class ObterTurmaSrmERegularDoAlunoView(APIView):
         responses={200: TurmaSrmRegularDoAlunoSerializer(many=True)},
     )
     def get(self, request: Request, codigo_aluno: str) -> Response:
+        """Obtém as turmas SRM e regular de um aluno PAEE."""
+        
         try:
             codigo = _to_int(codigo_aluno, "codigo_aluno")
         except ValueError as exc:
@@ -92,6 +94,8 @@ class ObterTurmasPapView(APIView):
     def get(
         self, request: Request, ano_letivo: str, codigo_escola: str
     ) -> Response:
+        """ Obtém as turmas PAP de uma UE em um ano letivo."""
+
         try:
             ano = _to_int(ano_letivo, "ano_letivo")
         except ValueError as exc:
@@ -124,6 +128,8 @@ class VerificarSeAlunosSaoTurmaProgramaPapView(APIView):
         responses={200: AlunoTurmaProgramaPapSerializer(many=True)},
     )
     def get(self, request: Request, ano_letivo: str) -> Response:
+        """ Verifica quais alunos pertencem a turmas PAP no ano."""
+
         try:
             ano = _to_int(ano_letivo, "ano_letivo")
         except ValueError as exc:
@@ -162,6 +168,8 @@ class ObterAlunosPapAnoCorrenteView(APIView):
         responses={200: AlunoTurmaPapSerializer(many=True)},
     )
     def get(self, request: Request) -> HttpResponse:
+        """ Obtém os alunos PAP do ano corrente."""
+
         return HttpResponse(
             services.obter_alunos_pap_ano_corrente_json(),
             content_type="application/json",
@@ -182,6 +190,8 @@ class ObterAlunosPapPorAnoLetivoView(APIView):
     def get(
         self, request: Request, ano_letivo: str
     ) -> HttpResponse | Response:
+        """ Obtém os alunos PAP de um ano letivo específico."""
+
         try:
             ano = _to_int(ano_letivo, "ano_letivo")
         except ValueError as exc:
@@ -210,6 +220,8 @@ class ObterComponentesCurricularesTurmasProgramaAlunoView(APIView):
     def get(
         self, request: Request, codigo_aluno: str, ano_letivo: str
     ) -> Response:
+        """ Lista componentes curriculares das turmas de programa do aluno."""
+
         try:
             codigo = _to_int(codigo_aluno, "codigo_aluno")
             ano = _to_int(ano_letivo, "ano_letivo")
@@ -238,6 +250,8 @@ class ObterDadosSrmPaeeColaborativoView(APIView):
         responses={200: DadosSrmPaeeColaborativoSerializer(many=True)},
     )
     def get(self, request: Request, codigo_aluno: str) -> Response:
+        """ Obtém os dados de SRM/PAEE colaborativo de um aluno."""
+
         try:
             codigo = _to_int(codigo_aluno, "codigo_aluno")
         except ValueError as exc:
@@ -267,6 +281,8 @@ class ObterTurmasProgramaView(APIView):
         responses={200: {"type": "array", "items": {"type": "string"}}},
     )
     def post(self, request: Request) -> Response:
+        """ Filtra os códigos de turma que são turmas de programa."""
+
         serializer = TurmasProgramaRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         codigos = serializer.validated_data["codigos_turmas"]
