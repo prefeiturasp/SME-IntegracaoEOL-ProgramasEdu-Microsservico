@@ -15,9 +15,10 @@ from apps.programas.enums import (
     SITUACOES_MATRICULA_VALIDAS,
     SITUACOES_TURMA_ATIVAS,
     CategoriaPrograma,
-    SituacaoMatricula,
 )
 from apps.programas.models import (
+    AlunoPapAnoLetivo,
+    AlunoPapAnoLetivoHistorico,
     ComponenteCurricularPrograma,
     MatriculaTurmaPrograma,
     MatriculaTurmaProgramaHistorico,
@@ -94,13 +95,21 @@ class DadosSrmPaeeColaborativoDTO:
     codigo_componente: int
     codigo_aluno: int
     situacao_matricula: str
-    data_matricula: datetime | date
+    data_matricula: datetime
 
 
 def obter_turmas_paee_do_aluno(
     codigo_aluno: int,
 ) -> list[TurmaSrmRegularDoAlunoDTO]:
-    """Lista as turmas PAEE em que o aluno está matriculado."""
+    """Lista as turmas PAEE em que o aluno está matriculado.
+
+    Args:
+        codigo_aluno: Aluno cujas matrículas PAEE serão consultadas.
+
+    Returns:
+        Turmas PAEE com matrícula em situação válida, ordenadas do ano
+        mais recente para o mais antigo.
+    """
     qs = (
         MatriculaTurmaPrograma.objects.filter(
             codigo_aluno=codigo_aluno,
@@ -147,7 +156,16 @@ def obter_turmas_paee_do_aluno(
 def listar_turmas_pap_da_ue(
     ano_letivo: int, codigo_ue: str
 ) -> list[TurmaPapResumoDTO]:
-    """Lista as turmas PAP de uma UE em um ano letivo."""
+    """Lista as turmas PAP de uma UE em um ano letivo.
+
+    Args:
+        ano_letivo: Ano letivo a consultar.
+        codigo_ue: Código da unidade educacional.
+
+    Returns:
+        Turmas PAP ativas da UE, ordenadas por nome. Cada nome já vem
+        concatenado à descrição da grade, quando existir.
+    """
     qs = (
         TurmaPrograma.objects.filter(
             ano_letivo=ano_letivo,
@@ -216,14 +234,14 @@ def verificar_alunos_em_turma_pap(
 
 
 def listar_alunos_pap_ano_corrente() -> list[AlunoTurmaPapDTO]:
-    """Lista os alunos PAP do ano corrente."""
+    """Lista os alunos PAP do ano corrente.
+
+    Returns:
+        Alunos PAP do ano corrente, lidos da tabela pré-agregada de carga
+        live.
+    """
     ano_corrente = timezone.now().year
-    return _consultar_alunos_pap(
-        ano_letivo=ano_corrente,
-        situacoes_matricula=(SituacaoMatricula.ATIVO,),
-        situacoes_turma=("O", "A", "C"),
-        historico=False,
-    )
+    return _consultar_alunos_pap(AlunoPapAnoLetivo, ano_letivo=ano_corrente)
 
 
 def listar_alunos_pap_por_ano(ano_letivo: int) -> list[AlunoTurmaPapDTO]:
@@ -239,28 +257,30 @@ def listar_alunos_pap_por_ano(ano_letivo: int) -> list[AlunoTurmaPapDTO]:
     if ano_letivo >= timezone.now().year:
         return []
     return _consultar_alunos_pap(
-        ano_letivo=ano_letivo,
-        situacoes_matricula=(
-            SituacaoMatricula.ATIVO,
-            SituacaoMatricula.CONCLUIDO,
-        ),
-        situacoes_turma=("O", "A", "C"),
-        historico=True,
+        AlunoPapAnoLetivoHistorico, ano_letivo=ano_letivo
     )
 
 
 def _consultar_alunos_pap(
+    model: type[AlunoPapAnoLetivo] | type[AlunoPapAnoLetivoHistorico],
     ano_letivo: int,
-    situacoes_matricula: Sequence[int],
-    situacoes_turma: Sequence[str],
-    historico: bool = False,
 ) -> list[AlunoTurmaPapDTO]:
-    """Consulta alunos PAP e mapeia para dataclasses."""
-    qs = _query_alunos_pap_snake(
-        ano_letivo=ano_letivo,
-        situacoes_matricula=situacoes_matricula,
-        situacoes_turma=situacoes_turma,
-        historico=historico,
+    """Consulta alunos PAP e mapeia para dataclasses.
+
+    Args:
+        model: Tabela pré-agregada a consultar (carga live ou histórica).
+        ano_letivo: Ano letivo usado como filtro.
+
+    Returns:
+        Alunos PAP do ano informado convertidos para DTO.
+    """
+    qs = model.objects.filter(ano_letivo=ano_letivo).values(
+        "ano_letivo",
+        "codigo_turma",
+        "codigo_ue",
+        "codigo_dre",
+        "codigo_aluno",
+        "codigo_componente_curricular",
     )
     return [
         AlunoTurmaPapDTO(
@@ -275,53 +295,14 @@ def _consultar_alunos_pap(
     ]
 
 
-def _query_alunos_pap_snake(
-    ano_letivo: int,
-    situacoes_matricula: Sequence[int],
-    situacoes_turma: Sequence[str],
-    historico: bool = False,
-) -> QuerySet:
-    """Monta o queryset base de alunos PAP em snake_case."""
-    model = (
-        MatriculaTurmaProgramaHistorico
-        if historico
-        else MatriculaTurmaPrograma
-    )
-
-    componentes_pap_vigentes = ComponenteCurricularPrograma.objects.filter(
-        categoria=CategoriaPrograma.PAP,
-        vigente=True,
-    ).values("codigo_componente_curricular")
-    turmas_ativas = TurmaPrograma.objects.filter(
-        situacao__in=situacoes_turma,
-        ano_letivo=ano_letivo,
-    ).values("codigo_turma")
-
-    return model.objects.filter(
-        ano_letivo=ano_letivo,
-        categoria=CategoriaPrograma.PAP,
-        codigo_componente_curricular__in=componentes_pap_vigentes,
-        codigo_situacao_matricula__in=list(situacoes_matricula),
-        codigo_turma__in=turmas_ativas,
-    ).values(
-        "ano_letivo",
-        "codigo_turma",
-        "codigo_ue",
-        "codigo_dre",
-        "codigo_aluno",
-        "codigo_componente_curricular",
-    )
-
-
 def obter_alunos_pap_ano_corrente_json() -> bytes:
-    """Retorna em JSON (bytes) os alunos PAP do ano corrente."""
+    """Retorna os alunos PAP do ano corrente já serializados em JSON.
+
+    Returns:
+        Array JSON em bytes pronto para resposta HTTP.
+    """
     ano_corrente = timezone.now().year
-    return _consultar_alunos_pap_json(
-        ano_letivo=ano_corrente,
-        situacoes_matricula=(SituacaoMatricula.ATIVO,),
-        situacoes_turma=("O", "A", "C"),
-        historico=False,
-    )
+    return _consultar_alunos_pap_json(ano_letivo=ano_corrente, historico=False)
 
 
 def obter_alunos_pap_por_ano_json(ano_letivo: int) -> bytes:
@@ -335,91 +316,70 @@ def obter_alunos_pap_por_ano_json(ano_letivo: int) -> bytes:
     """
     if ano_letivo >= timezone.now().year:
         return b"[]"
-    return _consultar_alunos_pap_json(
-        ano_letivo=ano_letivo,
-        situacoes_matricula=(
-            SituacaoMatricula.ATIVO,
-            SituacaoMatricula.CONCLUIDO,
-        ),
-        situacoes_turma=("O", "A", "C"),
-        historico=True,
-    )
+    return _consultar_alunos_pap_json(ano_letivo=ano_letivo, historico=True)
 
 
 _SQL_ALUNOS_PAP_ATUAL = """
     SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)::text
     FROM (
-        SELECT mtp.ano_letivo                   AS "ano_letivo",
-               mtp.codigo_turma                 AS "codigo_turma",
-               mtp.codigo_ue                    AS "codigo_ue",
-               mtp.codigo_dre                   AS "codigo_dre",
-               mtp.codigo_aluno                 AS "codigo_aluno",
-               mtp.codigo_componente_curricular AS "componente_curricular_id"
-        FROM matricula_turma_programa mtp
-        WHERE mtp.categoria = 'PAP'
-          AND mtp.ano_letivo = %(ano_letivo)s
-          AND mtp.codigo_situacao_matricula = ANY(%(situacoes_matricula)s)
-          AND mtp.codigo_componente_curricular IN (
-              SELECT codigo_componente_curricular
-              FROM componente_curricular_programa
-              WHERE categoria = 'PAP' AND vigente = TRUE
-          )
-          AND mtp.codigo_turma IN (
-              SELECT codigo_turma
-              FROM turma_programa
-              WHERE ano_letivo = %(ano_letivo)s
-                AND situacao = ANY(%(situacoes_turma)s)
-          )
+        SELECT app.ano_letivo                   AS "ano_letivo",
+               app.codigo_turma                 AS "codigo_turma",
+               app.codigo_ue                    AS "codigo_ue",
+               app.codigo_dre                   AS "codigo_dre",
+               app.codigo_aluno                 AS "codigo_aluno",
+               app.codigo_componente_curricular AS "componente_curricular_id"
+        FROM aluno_pap_ano_letivo app
+        WHERE app.ano_letivo = %(ano_letivo)s
     ) t
 """
 
 _SQL_ALUNOS_PAP_HISTORICO = """
     SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)::text
     FROM (
-        SELECT mtp.ano_letivo                   AS "ano_letivo",
-               mtp.codigo_turma                 AS "codigo_turma",
-               mtp.codigo_ue                    AS "codigo_ue",
-               mtp.codigo_dre                   AS "codigo_dre",
-               mtp.codigo_aluno                 AS "codigo_aluno",
-               mtp.codigo_componente_curricular AS "componente_curricular_id"
-        FROM matricula_turma_programa_historico mtp
-        WHERE mtp.categoria = 'PAP'
-          AND mtp.ano_letivo = %(ano_letivo)s
-          AND mtp.codigo_situacao_matricula = ANY(%(situacoes_matricula)s)
-          AND mtp.codigo_componente_curricular IN (
-              SELECT codigo_componente_curricular
-              FROM componente_curricular_programa
-              WHERE categoria = 'PAP' AND vigente = TRUE
-          )
-          AND mtp.codigo_turma IN (
-              SELECT codigo_turma
-              FROM turma_programa
-              WHERE ano_letivo = %(ano_letivo)s
-                AND situacao = ANY(%(situacoes_turma)s)
-          )
+        SELECT app.ano_letivo                   AS "ano_letivo",
+               app.codigo_turma                 AS "codigo_turma",
+               app.codigo_ue                    AS "codigo_ue",
+               app.codigo_dre                   AS "codigo_dre",
+               app.codigo_aluno                 AS "codigo_aluno",
+               app.codigo_componente_curricular AS "componente_curricular_id"
+        FROM aluno_pap_ano_letivo_historico app
+        WHERE app.ano_letivo = %(ano_letivo)s
     ) t
 """
 
 
 def _consultar_alunos_pap_json(
     ano_letivo: int,
-    situacoes_matricula: Sequence[int],
-    situacoes_turma: Sequence[str],
     historico: bool = False,
 ) -> bytes:
-    """Devolve o array JSON de alunos PAP em bytes."""
+    """Devolve o array JSON de alunos PAP em bytes.
+
+    Args:
+        ano_letivo: Ano letivo usado como filtro.
+        historico: Quando ``True`` consulta a tabela de carga histórica.
+
+    Returns:
+        Array JSON em bytes. ``b"[]"`` quando não há registros.
+    """
+    model: type[AlunoPapAnoLetivo] | type[AlunoPapAnoLetivoHistorico] = (
+        AlunoPapAnoLetivoHistorico if historico else AlunoPapAnoLetivo
+    )
     if connection.vendor == "postgresql":
-        return _consultar_alunos_pap_json_postgres(
-            ano_letivo=ano_letivo,
-            situacoes_matricula=situacoes_matricula,
-            situacoes_turma=situacoes_turma,
-            historico=historico,
+        sql = _SQL_ALUNOS_PAP_HISTORICO if historico else _SQL_ALUNOS_PAP_ATUAL
+        with connection.cursor() as cur:
+            cur.execute(sql, {"ano_letivo": ano_letivo})
+            row = cur.fetchone()
+        texto = row[0] if row and row[0] is not None else "[]"
+        return (
+            texto.encode("utf-8") if isinstance(texto, str) else bytes(texto)
         )
-    qs = _query_alunos_pap_snake(
-        ano_letivo=ano_letivo,
-        situacoes_matricula=situacoes_matricula,
-        situacoes_turma=situacoes_turma,
-        historico=historico,
+    qs = model.objects.filter(ano_letivo=ano_letivo).values(
+        "ano_letivo",
+        "codigo_turma",
+        "codigo_ue",
+        "codigo_dre",
+        "codigo_aluno",
+        "codigo_componente_curricular",
     )
     return orjson.dumps(
         [
@@ -439,32 +399,19 @@ def _consultar_alunos_pap_json(
     )
 
 
-def _consultar_alunos_pap_json_postgres(
-    ano_letivo: int,
-    situacoes_matricula: Sequence[int],
-    situacoes_turma: Sequence[str],
-    historico: bool = False,
-) -> bytes:
-    """Executa o json_agg no Postgres e devolve o TEXT pronto."""
-    sql = _SQL_ALUNOS_PAP_HISTORICO if historico else _SQL_ALUNOS_PAP_ATUAL
-    with connection.cursor() as cur:
-        cur.execute(
-            sql,
-            {
-                "ano_letivo": ano_letivo,
-                "situacoes_matricula": list(situacoes_matricula),
-                "situacoes_turma": list(situacoes_turma),
-            },
-        )
-        row = cur.fetchone()
-    texto = row[0] if row and row[0] is not None else "[]"
-    return texto.encode("utf-8") if isinstance(texto, str) else bytes(texto)
-
-
 def listar_componentes_turmas_aluno(
     codigo_aluno: int, ano_letivo: int
 ) -> list[ComponenteTurmaProgramaAlunoDTO]:
-    """Lista os componentes das turmas de programa do aluno no ano."""
+    """Lista os componentes das turmas de programa do aluno no ano.
+
+    Args:
+        codigo_aluno: Aluno cujas matrículas serão consultadas.
+        ano_letivo: Ano letivo usado como filtro.
+
+    Returns:
+        Componentes únicos das turmas de programa em que o aluno tem
+        matrícula em situação válida.
+    """
     qs = (
         MatriculaTurmaPrograma.objects.filter(
             codigo_aluno=codigo_aluno,
@@ -496,7 +443,14 @@ def listar_componentes_turmas_aluno(
 def obter_dados_srm_paee_aluno(
     codigo_aluno: int,
 ) -> list[DadosSrmPaeeColaborativoDTO]:
-    """Retorna os dados de SRM/PAEE colaborativo do aluno."""
+    """Retorna os dados de SRM/PAEE colaborativo do aluno.
+
+    Args:
+        codigo_aluno: Aluno cujas matrículas SRM/PAEE serão consultadas.
+
+    Returns:
+        Matrículas no componente SRM/PAEE com turno da turma associado.
+    """
     qs = (
         MatriculaTurmaPrograma.objects.filter(
             codigo_aluno=codigo_aluno,
@@ -525,6 +479,13 @@ def obter_dados_srm_paee_aluno(
 
     resultado: list[DadosSrmPaeeColaborativoDTO] = []
     for linha in qs:
+        data_matricula = linha["data_matricula"]
+        if isinstance(data_matricula, date) and not isinstance(
+            data_matricula, datetime
+        ):
+            data_matricula = datetime.combine(
+                data_matricula, datetime.min.time()
+            )
         resultado.append(
             DadosSrmPaeeColaborativoDTO(
                 codigo_turma=linha["codigo_turma"],
@@ -534,7 +495,7 @@ def obter_dados_srm_paee_aluno(
                 codigo_componente=linha["codigo_componente_curricular"],
                 codigo_aluno=linha["codigo_aluno"],
                 situacao_matricula=str(linha["codigo_situacao_matricula"]),
-                data_matricula=linha["data_matricula"],
+                data_matricula=data_matricula,
             )
         )
     return resultado

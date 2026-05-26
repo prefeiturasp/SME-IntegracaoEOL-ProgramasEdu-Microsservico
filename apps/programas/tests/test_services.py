@@ -49,7 +49,7 @@ class ObterTurmasPaeeDoAlunoTestCase(TestCase):
             nome_componente_curricular="SRM",
             codigo_situacao_matricula=2,
             descricao_situacao_matricula="Desistente",
-            data_matricula=date(2026, 2, 1),
+            data_matricula=datetime(2026, 2, 1, 11, 51, 46, 820000),
             data_situacao=date(2026, 2, 1),
             ano_letivo=2026,
             codigo_ue="092959",
