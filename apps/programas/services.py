@@ -412,8 +412,14 @@ def listar_componentes_turmas_aluno(
         Componentes únicos das turmas de programa em que o aluno tem
         matrícula em situação válida.
     """
+    model: type[MatriculaTurmaPrograma] | type[MatriculaTurmaProgramaHistorico]
+    model = (
+        MatriculaTurmaPrograma
+        if ano_letivo >= timezone.now().year
+        else MatriculaTurmaProgramaHistorico
+    )
     qs = (
-        MatriculaTurmaPrograma.objects.filter(
+        model.objects.filter(
             codigo_aluno=codigo_aluno,
             ano_letivo=ano_letivo,
             codigo_situacao_matricula__in=SITUACOES_MATRICULA_VALIDAS,
