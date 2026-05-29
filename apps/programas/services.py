@@ -422,7 +422,6 @@ def listar_componentes_turmas_aluno(
         model.objects.filter(
             codigo_aluno=codigo_aluno,
             ano_letivo=ano_letivo,
-            codigo_situacao_matricula__in=SITUACOES_MATRICULA_VALIDAS,
         )
         .values(
             "codigo_aluno",
