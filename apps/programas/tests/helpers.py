@@ -6,6 +6,8 @@ from datetime import UTC, date, datetime
 
 from apps.programas.enums import CategoriaPrograma
 from apps.programas.models import (
+    AlunoPapAnoLetivo,
+    AlunoPapAnoLetivoHistorico,
     ComponenteCurricularPrograma,
     MatriculaTurmaPrograma,
     MatriculaTurmaProgramaHistorico,
@@ -128,7 +130,7 @@ def seed_matriculas() -> list[MatriculaTurmaPrograma]:
             nome_componente_curricular=NOME_PROJETO_COLABORATIVO,
             codigo_situacao_matricula=1,
             descricao_situacao_matricula="Ativo",
-            data_matricula=date(2026, 2, 1),
+            data_matricula=datetime(2026, 2, 1, 11, 51, 46, 820000),
             data_situacao=date(2026, 2, 1),
             ano_letivo=2026,
             codigo_ue="019660",
@@ -144,7 +146,7 @@ def seed_matriculas() -> list[MatriculaTurmaPrograma]:
             nome_componente_curricular="SRM",
             codigo_situacao_matricula=1,
             descricao_situacao_matricula="Ativo",
-            data_matricula=date(2025, 12, 11),
+            data_matricula=datetime(2025, 12, 11, 11, 51, 46, 820000),
             data_situacao=date(2025, 12, 11),
             ano_letivo=2026,
             codigo_ue="092959",
@@ -161,7 +163,7 @@ def seed_matriculas() -> list[MatriculaTurmaPrograma]:
         nome_componente_curricular=NOME_PROJETO_COLABORATIVO,
         codigo_situacao_matricula=1,
         descricao_situacao_matricula="Ativo",
-        data_matricula=date(2026, 2, 1),
+        data_matricula=datetime(2026, 2, 1, 11, 51, 46, 820000),
         data_situacao=date(2026, 2, 1),
         ano_letivo=2026,
         codigo_ue="019660",
@@ -170,4 +172,26 @@ def seed_matriculas() -> list[MatriculaTurmaPrograma]:
         criado_em=agora(),
         atualizado_em=agora(),
     )
+    seed_alunos_pap()
     return matriculas
+
+
+def seed_alunos_pap() -> None:
+    """Popula as tabelas pré-agregadas PAP usadas nos testes."""
+    # Só a linha PAP (6730137); o aluno PAEE (5285836) não entra.
+    AlunoPapAnoLetivo.objects.create(
+        codigo_aluno=6730137,
+        codigo_turma=3082743,
+        codigo_componente_curricular=1770,
+        ano_letivo=2026,
+        codigo_ue="019660",
+        codigo_dre="108400",
+    )
+    AlunoPapAnoLetivoHistorico.objects.create(
+        codigo_aluno=6730137,
+        codigo_turma=3082743,
+        codigo_componente_curricular=1770,
+        ano_letivo=2026,
+        codigo_ue="019660",
+        codigo_dre="108400",
+    )
