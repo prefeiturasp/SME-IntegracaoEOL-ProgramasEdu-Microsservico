@@ -8,7 +8,6 @@ Funcionalidade: API - ProgramasEdu
     Então retorna o status 200 
     E o retorno de turmas PAP do aluno deve ser válido
 
-# @ignore
   Cenário: Consultar alunos PAP do ano letivo
     Dado que possuo acesso à API de ProgramasEdu
     Quando realizo consulta de alunos PAP do ano letivo
