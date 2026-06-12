@@ -11,7 +11,8 @@ Funcionalidade: API - ProgramasEdu
 
   Cenário: Consultar SRM PAEE do aluno
     Quando realizo consulta de SRM PAEE do aluno
-    Então o status da resposta de ProgramasEdu deve ser válido
+    Então retorna o status 200
+    E o retorno de SRM PAEE do aluno deve ser válido
 
   Cenário: Validar consistência da consulta
     Quando realizo consulta de SRM PAEE do aluno

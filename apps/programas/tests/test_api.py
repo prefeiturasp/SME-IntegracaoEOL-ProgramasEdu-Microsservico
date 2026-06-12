@@ -1,4 +1,4 @@
-"""Testes dos endpoints HTTP do app programas (EP-01 a EP-08)."""
+"""Testes dos endpoints HTTP do app programas."""
 
 from __future__ import annotations
 
@@ -20,26 +20,31 @@ from apps.programas.tests.helpers import (
 
 
 def _autenticado() -> APIClient:
+    """Retorna um APIClient com header de API key configurado."""
     cliente = APIClient()
     cliente.credentials(HTTP_X_API_KEY="test-api-key")
     return cliente
 
 
 def _body_json(resp: Any) -> Any:
-    """resp.json() falha em StreamingHttpResponse — drena os chunks à mão."""
+    """Lê o corpo JSON da resposta, inclusive em StreamingHttpResponse."""
     if isinstance(resp, StreamingHttpResponse):
         return json.loads(b"".join(resp.streaming_content).decode("utf-8"))
     return resp.json()
 
 
 class AutenticacaoTestCase(TestCase):
+    """Valida as respostas de autenticação dos endpoints."""
+
     def test_sem_api_key_retorna_401(self) -> None:
+        """Verifica que requisição sem API key retorna 401."""
         cliente = APIClient()
         url = reverse("obter-alunos-pap-ano-corrente")
         resp = cliente.get(url)
         self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_api_key_invalida_retorna_403(self) -> None:
+        """Verifica que API key incorreta retorna 403."""
         cliente = APIClient()
         cliente.credentials(HTTP_X_API_KEY="errada")
         url = reverse("obter-alunos-pap-ano-corrente")
@@ -48,12 +53,15 @@ class AutenticacaoTestCase(TestCase):
 
 
 class EP01TurmaSrmRegularDoAlunoTestCase(TestCase):
+    """Valida o endpoint de turmas SRM/regular do aluno PAEE."""
+
     def test_retorna_shape_reduzido(self) -> None:
+        """Verifica o shape do payload — só campos do domínio Programas."""
         seed_matriculas()
         cliente = _autenticado()
         url = reverse(
             "obter-turma-srm-e-regular-do-aluno",
-            kwargs={"codigoAluno": "5285836"},
+            kwargs={"codigo_aluno": "5285836"},
         )
         resp = cliente.get(url)
         self.assertEqual(resp.status_code, 200)
@@ -61,95 +69,106 @@ class EP01TurmaSrmRegularDoAlunoTestCase(TestCase):
         self.assertEqual(len(body), 1)
         item = body[0]
         for campo in [
-            "codigoAluno",
-            "codigoTurma",
-            "anoLetivo",
-            "tipoTurno",
-            "codigoSituacaoMatricula",
-            "situacaoMatricula",
-            "dataSituacao",
-            "turmaNome",
+            "codigo_aluno",
+            "codigo_turma",
+            "ano_letivo",
+            "tipo_turno",
+            "codigo_situacao_matricula",
+            "situacao_matricula",
+            "data_situacao",
+            "turma_nome",
         ]:
             self.assertIn(campo, item)
         for campo in [
-            "nomeAluno",
-            "dataNascimento",
-            "nomeResponsavel",
-            "etapaEnsino",
-            "cicloEnsino",
+            "nome_aluno",
+            "data_nascimento",
+            "nome-responsavel",
+            "etapa_ensino",
+            "ciclo_ensino",
         ]:
             self.assertNotIn(campo, item)
 
     def test_codigo_invalido_retorna_400(self) -> None:
+        """Verifica que codigo_aluno não numérico retorna 400."""
         cliente = _autenticado()
         url = reverse(
             "obter-turma-srm-e-regular-do-aluno",
-            kwargs={"codigoAluno": "abc"},
+            kwargs={"codigo_aluno": "abc"},
         )
         resp = cliente.get(url)
         self.assertEqual(resp.status_code, 400)
 
 
 class EP02TurmasPapTestCase(TestCase):
+    """Valida o endpoint de turmas PAP por UE e ano letivo."""
+
     def test_retorna_turmas_da_ue(self) -> None:
+        """Verifica os campos e a ordem das turmas PAP retornadas."""
         seed_turmas()
         cliente = _autenticado()
         url = reverse(
             "obter-turmas-pap",
-            kwargs={"anoLetivo": "2026", "codigoEscola": "019660"},
+            kwargs={"ano_letivo": "2026", "codigo_escola": "019660"},
         )
         resp = cliente.get(url)
         self.assertEqual(resp.status_code, 200)
         body = resp.json()
         self.assertEqual(len(body), 2)
-        # Ordem alfabética por nome_turma curto: "ID" antes de "LC"
-        self.assertEqual(body[0]["codigoTurma"], "3172713")
+        self.assertEqual(body[0]["codigo_turma"], "3172713")
         self.assertEqual(
-            body[0]["turmaNome"],
+            body[0]["turma_nome"],
             "ID - PAP 2 ANO COLABORATIVO _ALFABETIZACAO",
         )
-        self.assertEqual(body[1]["codigoTurma"], "3082743")
+        self.assertEqual(body[1]["codigo_turma"], "3082743")
         self.assertEqual(
-            body[1]["turmaNome"], "LC - PAP COLABORATIVO 3 / 4 E 5 ANO"
+            body[1]["turma_nome"], "LC - PAP COLABORATIVO 3 / 4 E 5 ANO"
         )
 
     def test_ano_invalido_retorna_400(self) -> None:
+        """Verifica que ano_letivo não numérico retorna 400."""
         cliente = _autenticado()
         url = reverse(
             "obter-turmas-pap",
-            kwargs={"anoLetivo": "abc", "codigoEscola": "019660"},
+            kwargs={"ano_letivo": "abc", "codigo_escola": "019660"},
         )
         resp = cliente.get(url)
         self.assertEqual(resp.status_code, 400)
 
 
 class EP03VerificarAlunosTurmaProgramaPapTestCase(TestCase):
+    """Valida o endpoint de verificação de alunos em turma PAP."""
+
     def test_retorna_alunos_validos(self) -> None:
+        """Verifica os alunos PAP retornados para os códigos informados."""
         seed_matriculas()
         cliente = _autenticado()
         url = reverse(
             "verificar-se-alunos-sao-turma-programa-pap",
-            kwargs={"anoLetivo": "2026"},
+            kwargs={"ano_letivo": "2026"},
         )
-        resp = cliente.get(url, {"codigosAlunos": ["6730137"]})
+        resp = cliente.get(url, {"codigos_alunos": ["6730137"]})
         self.assertEqual(resp.status_code, 200)
         body = resp.json()
         self.assertEqual(len(body), 1)
-        self.assertEqual(body[0]["codigoAluno"], 6730137)
-        self.assertEqual(body[0]["codigoComponente"], 1770)
+        self.assertEqual(body[0]["codigo_aluno"], 6730137)
+        self.assertEqual(body[0]["codigo_componente"], 1770)
 
     def test_codigos_alunos_invalido_retorna_400(self) -> None:
+        """Verifica que codigos_alunos com valor não numérico retorna 400."""
         cliente = _autenticado()
         url = reverse(
             "verificar-se-alunos-sao-turma-programa-pap",
-            kwargs={"anoLetivo": "2026"},
+            kwargs={"ano_letivo": "2026"},
         )
-        resp = cliente.get(url, {"codigosAlunos": ["abc"]})
+        resp = cliente.get(url, {"codigos_alunos": ["abc"]})
         self.assertEqual(resp.status_code, 400)
 
 
 class EP04AlunosPapAnoCorrenteTestCase(TestCase):
+    """Valida o endpoint de alunos PAP do ano corrente."""
+
     def test_retorna_alunos_pap(self) -> None:
+        """Verifica os alunos PAP retornados para o ano corrente mockado."""
         seed_matriculas()
         cliente = _autenticado()
         with patch(
@@ -161,17 +180,20 @@ class EP04AlunosPapAnoCorrenteTestCase(TestCase):
         self.assertEqual(resp.status_code, 200)
         body = _body_json(resp)
         self.assertEqual(len(body), 1)
-        self.assertEqual(body[0]["anoLetivo"], 2026)
-        self.assertEqual(body[0]["componenteCurricularId"], 1770)
+        self.assertEqual(body[0]["ano_letivo"], 2026)
+        self.assertEqual(body[0]["componente_curricular_id"], 1770)
 
 
 class EP05AlunosPapPorAnoLetivoTestCase(TestCase):
+    """Valida o endpoint de alunos PAP por ano letivo."""
+
     def test_retorna_alunos_do_ano(self) -> None:
+        """Verifica os alunos PAP retornados para o ano encerrado."""
         seed_matriculas()
         cliente = _autenticado()
         url = reverse(
             "obter-alunos-pap-por-ano-letivo",
-            kwargs={"anoLetivo": "2026"},
+            kwargs={"ano_letivo": "2026"},
         )
         with patch(
             "apps.programas.services.timezone.now",
@@ -181,14 +203,15 @@ class EP05AlunosPapPorAnoLetivoTestCase(TestCase):
             body = _body_json(resp)
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(len(body), 1)
-        self.assertEqual(body[0]["codigoAluno"], 6730137)
+        self.assertEqual(body[0]["codigo_aluno"], 6730137)
 
     def test_ano_corrente_retorna_array_vazio(self) -> None:
+        """Verifica que o ano corrente retorna array vazio."""
         seed_matriculas()
         cliente = _autenticado()
         url = reverse(
             "obter-alunos-pap-por-ano-letivo",
-            kwargs={"anoLetivo": "2026"},
+            kwargs={"ano_letivo": "2026"},
         )
         with patch(
             "apps.programas.services.timezone.now",
@@ -201,45 +224,54 @@ class EP05AlunosPapPorAnoLetivoTestCase(TestCase):
 
 
 class EP06ComponentesTurmasProgramaAlunoTestCase(TestCase):
+    """Valida o endpoint de componentes das turmas de programa do aluno."""
+
     def test_retorna_componentes(self) -> None:
+        """Verifica os componentes das turmas de programa do aluno."""
         seed_matriculas()
         cliente = _autenticado()
         url = reverse(
             "obter-componentes-curriculares-turmas-programa-aluno",
-            kwargs={"codigoAluno": "6730137", "anoLetivo": "2026"},
+            kwargs={"codigo_aluno": "6730137", "ano_letivo": "2026"},
         )
         resp = cliente.get(url)
         self.assertEqual(resp.status_code, 200)
         body = resp.json()
         self.assertEqual(len(body), 1)
-        self.assertEqual(body[0]["codigoAluno"], "6730137")
-        self.assertEqual(body[0]["codigoComponenteCurricular"], 1770)
+        self.assertEqual(body[0]["codigo_aluno"], "6730137")
+        self.assertEqual(body[0]["codigo_componente_curricular"], 1770)
         self.assertEqual(
-            body[0]["nomeComponenteCurricular"], "PAP PROJETO COLABORATIVO"
+            body[0]["nome_componente_curricular"], "PAP PROJETO COLABORATIVO"
         )
 
 
 class EP07DadosSrmPaeeColaborativoTestCase(TestCase):
+    """Valida o endpoint de dados SRM/PAEE colaborativo do aluno."""
+
     def test_retorna_dados_srm(self) -> None:
+        """Verifica os campos retornados para o aluno com matrícula SRM."""
         seed_matriculas()
         cliente = _autenticado()
         url = reverse(
             "obter-dados-srm-paee-colaborativo",
-            kwargs={"codigoAluno": "5285836"},
+            kwargs={"codigo_aluno": "5285836"},
         )
         resp = cliente.get(url)
         self.assertEqual(resp.status_code, 200)
         body = resp.json()
         self.assertEqual(len(body), 1)
         item = body[0]
-        self.assertEqual(item["codigoTurma"], 3105288)
-        self.assertEqual(item["codigoEscola"], "092959")
+        self.assertEqual(item["codigo_turma"], 3105288)
+        self.assertEqual(item["codigo_escola"], "092959")
         self.assertEqual(item["turno"], "Tarde")
-        self.assertEqual(item["situacaoMatricula"], "1")  # fiel ao legado
+        self.assertEqual(item["situacao_matricula"], "1")
 
 
 class EP08TurmasProgramaTestCase(TestCase):
+    """Valida o endpoint que filtra códigos de turma de programa."""
+
     def test_retorna_codigos_existentes(self) -> None:
+        """Verifica que apenas códigos existentes são devolvidos."""
         seed_turmas()
         cliente = _autenticado()
         url = reverse("obter-turmas-programa")
@@ -251,6 +283,7 @@ class EP08TurmasProgramaTestCase(TestCase):
         self.assertEqual(sorted(body), ["3082743", "3105288"])
 
     def test_lista_vazia(self) -> None:
+        """Verifica que lista vazia no corpo gera resposta vazia."""
         cliente = _autenticado()
         url = reverse("obter-turmas-programa")
         resp = cliente.post(url, [], format="json")

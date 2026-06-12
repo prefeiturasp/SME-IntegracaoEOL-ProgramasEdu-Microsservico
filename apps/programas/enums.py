@@ -1,13 +1,4 @@
-"""Enums e mapeamentos do domínio Programas.
-
-Centraliza os valores do EOL usados pelo domínio:
-    - CategoriaPrograma           PAP / PAEE
-    - SituacaoTurma               st_turma_escola (O/A/C/E)
-    - SituacaoMatricula           st_matricula / cd_situacao_aluno (1-17)
-
-Espelha apps/programas/enums.py do SME-IntegracaoEOL-MS-ETL — replicado
-aqui para preservar independência entre microsserviços (sem cross-import).
-"""
+"""Enums e mapeamentos do domínio Programas."""
 
 from enum import IntEnum, StrEnum
 
@@ -22,7 +13,7 @@ class CategoriaPrograma(models.TextChoices):
 
 
 class SituacaoTurma(StrEnum):
-    """st_turma_escola do EOL."""
+    """Situação da turma escolar."""
 
     ORGANIZADA = "O"
     NAO_ORGANIZADA = "A"
@@ -31,7 +22,15 @@ class SituacaoTurma(StrEnum):
 
     @classmethod
     def get_descricao(cls, codigo: str | None) -> str:
-        """Retorna a descrição amigável para o código."""
+        """Retorna a descrição amigável para o código.
+
+        Args:
+            codigo: Código da situação. ``None`` é aceito.
+
+        Returns:
+            Descrição correspondente. ``"Não Informada"`` quando ``codigo``
+            é ``None`` e ``"Desconhecido"`` para códigos fora do enum.
+        """
         if codigo is None:
             return "Não Informada"
 
@@ -48,7 +47,7 @@ class SituacaoTurma(StrEnum):
 
 
 class SituacaoMatricula(IntEnum):
-    """Mapeamento de cd_situacao_aluno / st_matricula do EOL."""
+    """Situação da matrícula do aluno."""
 
     ATIVO = 1
     DESISTENTE = 2
@@ -69,7 +68,16 @@ class SituacaoMatricula(IntEnum):
 
     @classmethod
     def get_descricao(cls, codigo: int | str | None) -> str:
-        """Retorna a descrição amigável para o código."""
+        """Retorna a descrição amigável para o código.
+
+        Args:
+            codigo: Código inteiro ou string numérica. ``None`` é aceito.
+
+        Returns:
+            Descrição correspondente. ``"Não Informada"`` quando ``codigo``
+            é ``None`` e ``"Desconhecido"`` para valores não numéricos ou
+            fora do enum.
+        """
         if codigo is None:
             return "Não Informada"
 

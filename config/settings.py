@@ -33,7 +33,15 @@ _POOL_OPTIONS = {
 
 
 def _parse_db_url(url: Any) -> dict:
-    """Faz o parse de uma URL postgres para dict de configuração Django."""
+    """Faz o parse de uma URL postgres para dict de configuração Django.
+
+    Args:
+        url: URL postgres ou valor falsy.
+
+    Returns:
+        Configuração de banco no formato esperado por ``DATABASES``.
+        Quando ``url`` é vazia, devolve configuração SQLite em memória.
+    """
     if not url:
         return {
             "ENGINE": "django.db.backends.sqlite3",
@@ -105,10 +113,6 @@ DATABASES = {
     "default": _parse_db_url(URL_BANCO_PROGRAMAS),
 }
 
-# Em modo teste os models do app programas (managed=False em produção,
-# DDL no MS-ETL) precisam de um banco onde o schema possa ser criado.
-# O ProgramasTestRunner promove os models a managed antes do
-# setup_databases — ver config/test_runner.py.
 MODO_TESTE = "test" in sys.argv or os.environ.get(
     "USE_SQLITE_TEST", "False"
 ).lower() in ("true", "1")
@@ -173,6 +177,9 @@ SPECTACULAR_SETTINGS = {
         }
     },
     "SECURITY": [{"ApiKeyAuth": []}],
+    "SWAGGER_UI_SETTINGS": {
+        "syntaxHighlight": False,
+    },
 }
 
 LOGGING = {

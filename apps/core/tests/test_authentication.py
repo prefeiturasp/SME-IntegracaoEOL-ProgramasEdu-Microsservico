@@ -8,9 +8,7 @@ from apps.core.authentication import ApiKeyAuthentication, UsuarioApiKey
 
 
 def _make_drf_request(factory, headers=None):
-    """Cria um request DRF a partir de um request Django
-    com headers opcionais.
-    """
+    """Cria um request DRF, opcionalmente com headers."""
     django_request = factory.get("/")
     if headers:
         for key, value in headers.items():
@@ -20,6 +18,8 @@ def _make_drf_request(factory, headers=None):
 
 
 class TestUsuarioApiKey(TestCase):
+    """Valida o pseudo-usuário retornado pela autenticação por API key."""
+
     def test_campos_padrao(self):
         """Verifica os valores padrão do usuário de API key."""
         usuario = UsuarioApiKey()
@@ -35,18 +35,16 @@ class TestUsuarioApiKey(TestCase):
 
 
 class TestApiKeyAuthentication(TestCase):
+    """Valida o fluxo de autenticação por API key."""
+
     def setUp(self):
-        """Configura a instância de autenticação e
-        o RequestFactory para os testes.
-        """
+        """Configura a autenticação e o RequestFactory dos testes."""
         self.auth = ApiKeyAuthentication()
         self.factory = RequestFactory()
 
     @override_settings(API_KEY="chave-secreta")
     def test_autenticacao_valida(self):
-        """Verifica que uma chave correta resulta em
-        autenticação bem-sucedida
-        """
+        """Verifica que uma chave correta autentica com sucesso."""
         request = _make_drf_request(
             self.factory, {"X-API-Key": "chave-secreta"}
         )
@@ -59,18 +57,14 @@ class TestApiKeyAuthentication(TestCase):
 
     @override_settings(API_KEY="chave-secreta")
     def test_sem_header_retorna_none(self):
-        """Verifica que a ausência do header X-API-Key
-        resulta em None,
-        """
+        """Verifica que a ausência do header X-API-Key retorna None."""
         request = _make_drf_request(self.factory)
         resultado = self.auth.authenticate(request)
         self.assertIsNone(resultado)
 
     @override_settings(API_KEY="chave-secreta")
     def test_chave_invalida_levanta_excecao(self):
-        """Verifica que uma chave incorreta resulta
-        em AuthenticationFailed
-        """
+        """Verifica que uma chave incorreta levanta AuthenticationFailed."""
         request = _make_drf_request(
             self.factory, {"X-API-Key": "chave-errada"}
         )
@@ -80,9 +74,7 @@ class TestApiKeyAuthentication(TestCase):
 
     @override_settings(API_KEY="")
     def test_api_key_nao_configurada_levanta_excecao(self):
-        """Verifica que se a API_KEY não estiver configurada,
-        a autenticação falha com uma mensagem clara.
-        """
+        """Verifica que API_KEY ausente faz a autenticação falhar."""
         request = _make_drf_request(self.factory, {"X-API-Key": "qualquer"})
         with self.assertRaises(AuthenticationFailed) as ctx:
             self.auth.authenticate(request)
@@ -99,7 +91,7 @@ class TestApiKeyAuthentication(TestCase):
 
     @override_settings(API_KEY="chave-secreta")
     def test_chave_com_espaco_invalida(self):
-        """Verifica que espaços extras na chave resultam em falha de autenticação."""
+        """Verifica que espaços extras na chave invalidam a autenticação."""
         request = _make_drf_request(
             self.factory, {"X-API-Key": " chave-secreta"}
         )

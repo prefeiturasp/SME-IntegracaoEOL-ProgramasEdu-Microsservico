@@ -1,14 +1,4 @@
-"""Serializers DRF do domínio Programas.
-
-Mapeiam os DTOs retornados por apps.programas.services para o shape
-camelCase esperado pelos consumidores do contrato legado (EP-01 a EP-07).
-
-EP-08 retorna list[str] cru — sem serializer dedicado.
-
-EP-01 retorna shape reduzido: campos de aluno (nomeAluno, dataNascimento
-etc.) e pedagógico (etapaEnsino, cicloEnsino) são responsabilidade de
-outros domínios e serão agregados pelo Transition Gateway.
-"""
+"""Serializers do domínio Programas."""
 
 from typing import Any
 
@@ -16,95 +6,69 @@ from rest_framework import serializers
 
 
 class TurmaSrmRegularDoAlunoSerializer(serializers.Serializer):
-    """EP-01 — Turmas SRM/regular do aluno PAEE (shape reduzido).
+    """Serializa turmas SRM/regular do aluno PAEE."""
 
-    Campos out-of-scope (vindos via Transition Gateway, agregando MS
-    Alunos / MS Pedagógico): nomeAluno, nomeSocialAluno, dataNascimento,
-    numeroAlunoChamada, nomeResponsavel, tipoResponsavel,
-    celularResponsavel, dataAtualizacaoContato, codigoTipoTurma,
-    etapaEnsino, cicloEnsino, descEtapaEnsino, descCicloEnsino,
-    dataAtualizacaoTabela.
-    """
-
-    codigoAluno = serializers.IntegerField(source="codigo_aluno")
-    codigoTurma = serializers.IntegerField(source="codigo_turma")
-    anoLetivo = serializers.IntegerField(source="ano_letivo")
-    tipoTurno = serializers.IntegerField(source="tipo_turno", allow_null=True)
-    codigoSituacaoMatricula = serializers.IntegerField(
-        source="codigo_situacao_matricula"
-    )
-    situacaoMatricula = serializers.CharField(source="situacao_matricula")
-    dataSituacao = serializers.DateField(
-        source="data_situacao", allow_null=True
-    )
-    turmaNome = serializers.CharField(source="turma_nome")
+    codigo_aluno = serializers.IntegerField()
+    codigo_turma = serializers.IntegerField()
+    ano_letivo = serializers.IntegerField()
+    tipo_turno = serializers.IntegerField(allow_null=True)
+    codigo_situacao_matricula = serializers.IntegerField()
+    situacao_matricula = serializers.CharField()
+    data_situacao = serializers.DateField()
+    turma_nome = serializers.CharField()
 
 
 class TurmaPapResumoSerializer(serializers.Serializer):
-    """EP-02 — Turmas PAP da UE no ano letivo."""
+    """Serializa turmas PAP da UE no ano letivo."""
 
-    codigoTurma = serializers.CharField(source="codigo_turma")
-    turmaNome = serializers.CharField(source="turma_nome")
+    codigo_turma = serializers.CharField()
+    turma_nome = serializers.CharField()
 
 
 class AlunoTurmaProgramaPapSerializer(serializers.Serializer):
-    """EP-03 — Verificação de alunos PAP."""
+    """Serializa alunos verificados em turmas PAP."""
 
-    codigoAluno = serializers.IntegerField(source="codigo_aluno")
-    codigoTurma = serializers.IntegerField(source="codigo_turma")
-    codigoComponente = serializers.IntegerField(source="codigo_componente")
+    codigo_aluno = serializers.IntegerField()
+    codigo_turma = serializers.IntegerField()
+    codigo_componente = serializers.IntegerField()
     descricao = serializers.CharField()
 
 
 class AlunoTurmaPapSerializer(serializers.Serializer):
-    """EP-04 / EP-05 — Alunos PAP do ano corrente / por ano letivo."""
+    """Serializa alunos PAP com turma, UE e DRE."""
 
-    anoLetivo = serializers.IntegerField(source="ano_letivo")
-    codigoTurma = serializers.IntegerField(source="codigo_turma")
-    codigoUe = serializers.CharField(source="codigo_ue")
-    codigoDre = serializers.CharField(source="codigo_dre")
-    codigoAluno = serializers.IntegerField(source="codigo_aluno")
-    componenteCurricularId = serializers.IntegerField(
-        source="componente_curricular_id"
-    )
+    ano_letivo = serializers.IntegerField()
+    codigo_turma = serializers.IntegerField()
+    codigo_ue = serializers.CharField()
+    codigo_dre = serializers.CharField()
+    codigo_aluno = serializers.IntegerField()
+    componente_curricular_id = serializers.IntegerField()
 
 
 class ComponenteTurmaProgramaAlunoSerializer(serializers.Serializer):
-    """EP-06 — Componentes das turmas de programa do aluno."""
+    """Serializa componentes das turmas de programa do aluno."""
 
-    codigoAluno = serializers.CharField(source="codigo_aluno")
-    codigoTurma = serializers.IntegerField(source="codigo_turma")
-    codigoComponenteCurricular = serializers.IntegerField(
-        source="codigo_componente_curricular"
-    )
-    nomeComponenteCurricular = serializers.CharField(
-        source="nome_componente_curricular"
-    )
+    codigo_aluno = serializers.CharField()
+    codigo_turma = serializers.IntegerField()
+    codigo_componente_curricular = serializers.IntegerField()
+    nome_componente_curricular = serializers.CharField()
 
 
 class DadosSrmPaeeColaborativoSerializer(serializers.Serializer):
-    """EP-07 — Dados de SRM/PAEE colaborativo do aluno.
+    """Serializa dados de SRM/PAEE colaborativo do aluno."""
 
-    OBS: ``situacaoMatricula`` é exposta como string ("1") preservando o
-    contrato do legado (que retornava o valor de st_matricula como char).
-    """
-
-    codigoTurma = serializers.IntegerField(source="codigo_turma")
-    codigoEscola = serializers.CharField(source="codigo_escola")
+    codigo_turma = serializers.IntegerField()
+    codigo_escola = serializers.CharField()
     turno = serializers.CharField()
     componente = serializers.CharField()
-    codigoComponente = serializers.IntegerField(source="codigo_componente")
-    codigoAluno = serializers.IntegerField(source="codigo_aluno")
-    situacaoMatricula = serializers.CharField(source="situacao_matricula")
-    dataMatricula = serializers.DateField(source="data_matricula")
+    codigo_componente = serializers.IntegerField()
+    codigo_aluno = serializers.IntegerField()
+    situacao_matricula = serializers.CharField()
+    data_matricula = serializers.DateTimeField()
 
 
 class TurmasProgramaRequestSerializer(serializers.Serializer):
-    """EP-08 — Body de POST /turmas/turmas-programa.
-
-    Aceita uma lista de strings com códigos de turma a verificar. Fiel
-    ao contrato legado (``IEnumerable<string>``).
-    """
+    """Serializa a lista de códigos de turma a verificar."""
 
     codigos_turmas = serializers.ListField(
         child=serializers.CharField(),
@@ -112,8 +76,13 @@ class TurmasProgramaRequestSerializer(serializers.Serializer):
     )
 
     def to_internal_value(self, data: Any) -> dict[str, Any]:
-        """O legado aceita o body como uma lista crua [str, str, ...].
-        Encapsulamos para o ListField validar normalmente.
+        """Aceita o corpo como lista crua e encapsula para validação.
+
+        Args:
+            data: Corpo recebido, podendo ser uma lista pura de códigos.
+
+        Returns:
+            Dicionário validado no formato esperado pelo serializer.
         """
         if isinstance(data, list):
             data = {"codigos_turmas": data}

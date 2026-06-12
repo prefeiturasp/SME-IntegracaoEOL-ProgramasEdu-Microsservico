@@ -18,7 +18,10 @@ from apps.programas.tests.helpers import (
 
 
 class ObterTurmasPaeeDoAlunoTestCase(TestCase):
+    """Valida a busca de turmas PAEE do aluno."""
+
     def test_retorna_apenas_paee_do_aluno(self) -> None:
+        """Verifica que somente turmas PAEE do aluno são retornadas."""
         seed_matriculas()
         resultado = services.obter_turmas_paee_do_aluno(codigo_aluno=5285836)
         self.assertEqual(len(resultado), 1)
@@ -26,18 +29,18 @@ class ObterTurmasPaeeDoAlunoTestCase(TestCase):
         self.assertEqual(item.codigo_aluno, 5285836)
         self.assertEqual(item.codigo_turma, 3105288)
         self.assertEqual(item.tipo_turno, 2)
-        # EP-01 não concatena descrição da grade — preserva apenas
-        # nome_turma (o turmaNome agregado é usado pelo EP-02).
         self.assertEqual(item.turma_nome, "SD")
         self.assertEqual(item.codigo_situacao_matricula, 1)
         self.assertEqual(item.situacao_matricula, "Ativo")
 
     def test_retorna_vazio_se_aluno_nao_tem_paee(self) -> None:
+        """Verifica que aluno sem matrícula PAEE recebe lista vazia."""
         seed_matriculas()
         resultado = services.obter_turmas_paee_do_aluno(codigo_aluno=6730137)
         self.assertEqual(resultado, [])
 
     def test_filtra_por_situacao_matricula(self) -> None:
+        """Verifica que matrículas em situação inválida são excluídas."""
         seed_matriculas()
         MatriculaTurmaPrograma.objects.create(
             codigo_aluno=999,
@@ -46,7 +49,7 @@ class ObterTurmasPaeeDoAlunoTestCase(TestCase):
             nome_componente_curricular="SRM",
             codigo_situacao_matricula=2,
             descricao_situacao_matricula="Desistente",
-            data_matricula=date(2026, 2, 1),
+            data_matricula=datetime(2026, 2, 1, 11, 51, 46, 820000),
             data_situacao=date(2026, 2, 1),
             ano_letivo=2026,
             codigo_ue="092959",
@@ -59,7 +62,10 @@ class ObterTurmasPaeeDoAlunoTestCase(TestCase):
 
 
 class ListarTurmasPapDaUeTestCase(TestCase):
+    """Valida a listagem de turmas PAP por UE e ano letivo."""
+
     def test_retorna_turmas_pap_da_ue(self) -> None:
+        """Verifica que as turmas PAP da UE/ano são retornadas e nomeadas."""
         seed_turmas()
         resultado = services.listar_turmas_pap_da_ue(
             ano_letivo=2026, codigo_ue="019660"
@@ -76,6 +82,7 @@ class ListarTurmasPapDaUeTestCase(TestCase):
         )
 
     def test_retorna_vazio_para_ue_sem_pap(self) -> None:
+        """Verifica que UE sem turma PAP recebe lista vazia."""
         seed_turmas()
         resultado = services.listar_turmas_pap_da_ue(
             ano_letivo=2026, codigo_ue="999999"
@@ -83,6 +90,7 @@ class ListarTurmasPapDaUeTestCase(TestCase):
         self.assertEqual(resultado, [])
 
     def test_nao_retorna_paee(self) -> None:
+        """Verifica que turmas PAEE não vazam pela consulta PAP."""
         seed_turmas()
         resultado = services.listar_turmas_pap_da_ue(
             ano_letivo=2026, codigo_ue="092959"
@@ -90,6 +98,7 @@ class ListarTurmasPapDaUeTestCase(TestCase):
         self.assertEqual(resultado, [])
 
     def test_descricao_grade_nula_retorna_so_nome_turma(self) -> None:
+        """Verifica que turma sem descrição de grade usa apenas nome_turma."""
         TurmaPrograma.objects.create(
             codigo_turma=3999999,
             nome_turma="XX",
@@ -113,7 +122,10 @@ class ListarTurmasPapDaUeTestCase(TestCase):
 
 
 class VerificarAlunosEmTurmaPapTestCase(TestCase):
+    """Valida a verificação de alunos pertencentes a turmas PAP."""
+
     def test_retorna_alunos_pap_validos(self) -> None:
+        """Verifica que alunos PAP com matrícula válida são retornados."""
         seed_matriculas()
         resultado = services.verificar_alunos_em_turma_pap(
             ano_letivo=2026, codigos_alunos=[6730137]
@@ -124,6 +136,7 @@ class VerificarAlunosEmTurmaPapTestCase(TestCase):
         self.assertEqual(resultado[0].descricao, "PAP PROJETO COLABORATIVO")
 
     def test_lista_vazia_retorna_vazio(self) -> None:
+        """Verifica que entrada vazia gera saída vazia."""
         seed_matriculas()
         resultado = services.verificar_alunos_em_turma_pap(
             ano_letivo=2026, codigos_alunos=[]
@@ -131,6 +144,7 @@ class VerificarAlunosEmTurmaPapTestCase(TestCase):
         self.assertEqual(resultado, [])
 
     def test_aluno_paee_nao_aparece(self) -> None:
+        """Verifica que aluno só PAEE não aparece na consulta PAP."""
         seed_matriculas()
         resultado = services.verificar_alunos_em_turma_pap(
             ano_letivo=2026, codigos_alunos=[5285836]
@@ -139,7 +153,10 @@ class VerificarAlunosEmTurmaPapTestCase(TestCase):
 
 
 class ListarAlunosPapAnoCorrenteTestCase(TestCase):
+    """Valida a listagem de alunos PAP do ano corrente."""
+
     def test_filtra_por_ano_corrente(self) -> None:
+        """Verifica que apenas matrículas do ano corrente são retornadas."""
         seed_matriculas()
         with patch(
             "apps.programas.services.timezone.now",
@@ -151,6 +168,7 @@ class ListarAlunosPapAnoCorrenteTestCase(TestCase):
         self.assertEqual(resultado[0].codigo_aluno, 6730137)
 
     def test_outro_ano_retorna_vazio(self) -> None:
+        """Verifica que matrículas de outro ano não aparecem."""
         seed_matriculas()
         with patch(
             "apps.programas.services.timezone.now",
@@ -161,7 +179,10 @@ class ListarAlunosPapAnoCorrenteTestCase(TestCase):
 
 
 class ListarAlunosPapPorAnoTestCase(TestCase):
+    """Valida a listagem de alunos PAP por ano letivo encerrado."""
+
     def test_retorna_alunos_pap_do_ano(self) -> None:
+        """Verifica que alunos PAP do ano encerrado são retornados."""
         seed_matriculas()
         with patch(
             "apps.programas.services.timezone.now",
@@ -175,6 +196,7 @@ class ListarAlunosPapPorAnoTestCase(TestCase):
         self.assertEqual(resultado[0].componente_curricular_id, 1770)
 
     def test_ano_corrente_retorna_vazio(self) -> None:
+        """Verifica que ano corrente é tratado como inválido."""
         seed_matriculas()
         with patch(
             "apps.programas.services.timezone.now",
@@ -185,7 +207,10 @@ class ListarAlunosPapPorAnoTestCase(TestCase):
 
 
 class ListarComponentesTurmasAlunoTestCase(TestCase):
+    """Valida a listagem de componentes das turmas do aluno."""
+
     def test_retorna_componentes_do_aluno(self) -> None:
+        """Verifica os componentes das turmas de programa do aluno."""
         seed_matriculas()
         resultado = services.listar_componentes_turmas_aluno(
             codigo_aluno=6730137, ano_letivo=2026
@@ -197,7 +222,10 @@ class ListarComponentesTurmasAlunoTestCase(TestCase):
 
 
 class ObterDadosSrmPaeeAlunoTestCase(TestCase):
+    """Valida a obtenção de dados SRM/PAEE colaborativo do aluno."""
+
     def test_retorna_dados_srm(self) -> None:
+        """Verifica os campos retornados para o aluno com matrícula SRM."""
         seed_matriculas()
         resultado = services.obter_dados_srm_paee_aluno(codigo_aluno=5285836)
         self.assertEqual(len(resultado), 1)
@@ -207,16 +235,20 @@ class ObterDadosSrmPaeeAlunoTestCase(TestCase):
         self.assertEqual(item.turno, "Tarde")
         self.assertEqual(item.componente, "SRM")
         self.assertEqual(item.codigo_componente, 1030)
-        self.assertEqual(item.situacao_matricula, "1")  # string
+        self.assertEqual(item.situacao_matricula, "1")
 
     def test_aluno_sem_srm_retorna_vazio(self) -> None:
+        """Verifica que aluno sem SRM recebe lista vazia."""
         seed_matriculas()
         resultado = services.obter_dados_srm_paee_aluno(codigo_aluno=6730137)
         self.assertEqual(resultado, [])
 
 
 class FiltrarCodigosQueSaoTurmaProgramaTestCase(TestCase):
+    """Valida o filtro de códigos que correspondem a turmas de programa."""
+
     def test_retorna_apenas_existentes(self) -> None:
+        """Verifica que apenas códigos existentes são devolvidos."""
         seed_turmas()
         resultado = services.filtrar_codigos_que_sao_turma_programa(
             codigos_turmas=["3082743", "3105288", "9999999"]
@@ -224,12 +256,14 @@ class FiltrarCodigosQueSaoTurmaProgramaTestCase(TestCase):
         self.assertEqual(sorted(resultado), ["3082743", "3105288"])
 
     def test_lista_vazia_retorna_vazio(self) -> None:
+        """Verifica que entrada vazia gera saída vazia."""
         self.assertEqual(
             services.filtrar_codigos_que_sao_turma_programa(codigos_turmas=[]),
             [],
         )
 
     def test_codigo_invalido_e_ignorado(self) -> None:
+        """Verifica que códigos não numéricos são ignorados."""
         seed_turmas()
         resultado = services.filtrar_codigos_que_sao_turma_programa(
             codigos_turmas=["abc", "3082743"]
@@ -237,6 +271,7 @@ class FiltrarCodigosQueSaoTurmaProgramaTestCase(TestCase):
         self.assertEqual(resultado, ["3082743"])
 
     def test_so_invalidos_retorna_vazio(self) -> None:
+        """Verifica que entrada toda inválida resulta em lista vazia."""
         seed_turmas()
         resultado = services.filtrar_codigos_que_sao_turma_programa(
             codigos_turmas=["abc", "xyz"]
