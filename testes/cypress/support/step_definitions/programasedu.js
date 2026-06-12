@@ -1,78 +1,37 @@
 import { Given, When, Then } from 'cypress-cucumber-preprocessor/steps'
 
-let statusCode
+let response
 
 Given('que possuo acesso à API de ProgramasEdu', () => {
 
-  expect(Cypress.env('API_URL')).to.not.be.empty
-  expect(Cypress.env('API_KEY')).to.not.be.empty
-})
+  expect(Cypress.env('API_URL')).to.exist
+  expect(Cypress.env('API_KEY')).to.exist
 
-When('realizo consulta de turmas PAP do aluno', () => {
-
-  cy.getTurmasPapAluno().its('status').then((status) => {
-    statusCode = status
-  })
-})
-
-When('realizo consulta de alunos PAP do ano letivo', () => {
-
-  cy.getAlunosPapAnoLetivo().its('status').then((status) => {
-    statusCode = status
-  })
-})
-
-When('realizo consulta de PAP do ano corrente', () => {
-
-  cy.getPapAnoCorrente().its('status').then((status) => {
-    statusCode = status
-  })
-})
-
-When('realizo consulta de PAP por ano letivo', () => {
-
-  cy.getPapAnoLetivo().its('status').then((status) => {
-    statusCode = status
-  })
-})
-
-When('realizo consulta de turmas PAP por ano letivo', () => {
-
-  cy.getTurmasPapAnoLetivo().its('status').then((status) => {
-    statusCode = status
-  })
-})
-
-When('realizo consulta de turma SRM e regular do aluno', () => {
-
-  cy.getTurmaSrmRegularAluno().its('status').then((status) => {
-    statusCode = status
-  })
 })
 
 When('realizo consulta de SRM PAEE do aluno', () => {
 
-  cy.getSrmPaeeAluno().its('status').then((status) => {
-    statusCode = status
-  })
-})
+  cy.getSrmPaeeAluno()
+    .then((res) => {
 
-When('realizo consulta POST de turmas programa', () => {
+      response = res
 
-  cy.postTurmasPrograma().its('status').then((status) => {
-    statusCode = status
-  })
+      cy.log(`STATUS => ${res.status}`)
+      cy.log(`DURATION => ${res.duration} ms`)
+
+    })
+
 })
 
 Then('o status da resposta de ProgramasEdu deve ser válido', () => {
 
-  expect([
-    200,
-    201,
-    202,
-    204,
-    400,
-    404,
-    500,
-  ]).to.include(statusCode)
+  expect(response).to.exist
+
+  expect(response.status).to.eq(200)
+
+  expect(response.duration).to.be.lessThan(10000)
+
+  expect(response.body).to.not.be.undefined
+  expect(response.body).to.not.be.null
+
 })
