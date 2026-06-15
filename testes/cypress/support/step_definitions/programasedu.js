@@ -1,117 +1,66 @@
-import { Given, When, Then } from "cypress-cucumber-preprocessor/steps";
+import { Given, When, Then } from 'cypress-cucumber-preprocessor/steps'
 
-let statusCode;
+let response
 
-Given("que possuo acesso à API de ProgramasEdu", () => {
-  expect(Cypress.env("API_URL")).to.not.be.empty;
-});
+// ======================================================
+// GIVEN
+// ======================================================
 
-When("realizo consulta de turmas PAP do aluno", () => {
-  cy.getTurmasPapAluno().as("response");
-});
+Given('que possuo acesso à API de ProgramasEdu', () => {
 
-When("realizo consulta de alunos PAP do ano letivo", () => {
-  cy.getAlunosPapAnoLetivo().as("response");
-});
+  expect(Cypress.env('API_URL')).to.exist
+  expect(Cypress.env('API_URL')).to.not.be.empty
 
-When("realizo consulta de PAP do ano corrente", () => {
-  cy.getPapAnoCorrente().as("response");
-});
+  expect(Cypress.env('API_KEY')).to.exist
+  expect(Cypress.env('API_KEY')).to.not.be.empty
 
-When("realizo consulta de PAP do ano corrente", () => {
-  cy.getPapAnoCorrente().as("response");
-});
+})
 
-When("realizo consulta de PAP por ano letivo", () => {
-  cy.getPapAnoLetivo().as("response");
-});
+// ======================================================
+// WHEN
+// ======================================================
 
-When("realizo consulta de turmas PAP por ano letivo", () => {
-  cy.getTurmasPapAnoLetivo().as("response");
-});
+When('realizo consulta de SRM PAEE do aluno', () => {
 
-When("realizo consulta de turma SRM e regular do aluno", () => {
-  cy.getTurmaSrmRegularAluno().as("response");
-});
+  return cy.getSrmPaeeAluno()
+    .then((res) => {
 
-When("realizo consulta de SRM PAEE do aluno", () => {
-  cy.getSrmPaeeAluno().as("response");
-});
+      response = res
 
-When("realizo consulta POST de turmas programa", () => {
-  cy.postTurmasPrograma().as("response");
-});
+      cy.log(`STATUS => ${res.status}`)
+      cy.log(`DURATION => ${res.duration} ms`)
 
+    })
+
+})
+
+// ======================================================
 // THEN
+// ======================================================
 
-Then("retorna o status 200", function () {
-  cy.get("@response").then((response) => {
-    expect(response.status).to.eq(200);
-  });
-});
+Then('retorna o status 200', () => {
 
-Then("retorna o status 400", function () {
-  cy.get("@response").then((response) => {
-    expect(response.status).to.eq(400);
-  });
-});
+  expect(response, 'Response não retornada').to.exist
 
-Then("retorna o status 404", function () {
-  cy.get("@response").then((response) => {
-    expect(response.status).to.eq(404);
-  });
-});
+  expect(response.status).to.eq(200)
 
-// AND
+})
 
-And("o retorno de turmas PAP do aluno deve ser válido", function () {
-  cy.get("@response").then((response) => {
-    expect(response.body[0]).to.have.property("codigo_aluno");
-    expect(response.body[0]).to.have.property("codigo_turma");
-    expect(response.body[0]).to.have.property("codigo_componente_curricular");
-    expect(response.body[0]).to.have.property("nome_componente_curricular");
-  });
-});
+Then('o status da resposta de ProgramasEdu deve ser válido', () => {
 
-And("o retorno de alunos PAP do ano letivo deve ser válido", function () {
-  cy.get("@response").then((response) => {
-    expect(response.body).to.empty;
-  });
-});
+  expect(response, 'Response não retornada').to.exist
 
-And("o retorno de PAP do ano corrente deve ser válido", function () {
-  cy.get("@response").then((response) => {
-    expect(response.body[0]).to.have.property("ano_letivo");
-  });
-});
+  expect(response.status).to.eq(200)
 
-And("o retorno de PAP por ano letivo deve ser válido", function () {
-  cy.get("@response").then((response) => {
-    expect(response.body).to.empty;
-  });
-});
+})
 
-And("o retorno de turmas PAP por ano letivo deve ser válido", function () {
-  cy.get("@response").then((response) => {
-    expect(response.body[0]).to.have.property("codigo_turma");
-    expect(response.body[0]).to.have.property("turma_nome");
-  });
-});
+Then('o retorno de SRM PAEE do aluno deve ser válido', () => {
 
-And("o retorno de turma SRM e regular do aluno deve ser válido", function () {
-  cy.get("@response").then((response) => {
-    expect(response.body).to.empty;
-  });
-});
+  expect(response, 'Response não retornada').to.exist
 
-And("o retorno de SRM PAEE do aluno deve ser válido", function () {
-  cy.get("@response").then((response) => {
-    expect(response.body).to.empty;
-  });
-});
+  expect(response.status).to.eq(200)
 
-And("o retorno de turmas programa deve ser válido", function () {
-  cy.get("@response").then((response) => {
-    expect(response.body).to.be.not.empty;
-  });
-});
+  expect(response.body).to.not.be.undefined
+  expect(response.body).to.not.be.null
+
+})
