@@ -72,11 +72,12 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "drf_spectacular",
-    "apps.core",
+    "apps.core.apps.CoreConfig",
     "apps.programas",
 ]
 
 MIDDLEWARE = [
+    "sme_sidecar_sdk.integrations.django.ObservabilityMiddleware",
     "django.middleware.gzip.GZipMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -135,8 +136,6 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-NIVEL_LOG = os.environ.get("NIVEL_LOG", "INFO")
-
 API_KEY_HEADER = os.environ.get("API_KEY_HEADER", "X-API-Key")
 API_KEY = (
     "test-api-key"
@@ -179,25 +178,5 @@ SPECTACULAR_SETTINGS = {
     "SECURITY": [{"ApiKeyAuth": []}],
     "SWAGGER_UI_SETTINGS": {
         "syntaxHighlight": False,
-    },
-}
-
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "padrao": {
-            "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
-        }
-    },
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "padrao",
-        }
-    },
-    "root": {
-        "handlers": ["console"],
-        "level": NIVEL_LOG,
     },
 }

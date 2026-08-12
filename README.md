@@ -12,6 +12,9 @@ Consumido pelo **Transition Gateway**, que agrega as respostas deste
 microsserviço com os domínios Alunos e Pedagógico antes de devolver ao
 cliente final.
 
+Os recursos transversais de observabilidade são fornecidos pelo
+**SME Sidecar SDK v1.0.0**.
+
 ---
 
 ## Estrutura
@@ -76,8 +79,15 @@ Copie `.env.example` para `.env` e ajuste conforme o ambiente:
 | `DB_POOL_SIZE` | `5` | Tamanho do pool de conexões (`dj_db_conn_pool`) |
 | `PORT_WEB` | `8001` | Porta do servidor web no Docker |
 | `PORT_DEBUGPY` | `5678` | Porta do debugger remoto (debugpy) |
-| `NIVEL_LOG` | `INFO` | Nível de log (`DEBUG`, `INFO`, `WARNING`, …) |
-| `AMBIENTE_APLICACAO` | `local` | Identificador de ambiente nos logs |
+| `SME_SDK_ENABLED` | `true` | Ativa o runtime do SDK |
+| `SME_SERVICE_NAME` | `unnamed-service` | Identidade em logs e traces |
+| `SME_SERVICE_VERSION` | `unknown` | Versão publicada na telemetria |
+| `SME_ENVIRONMENT` | `dev` | Ambiente em logs e traces |
+| `SME_LOG_LEVEL` | `ERROR` | Nível mínimo dos logs |
+| `SME_LOG_FORMAT` | `json` | Formato `json` ou `console` |
+| `SME_CORRELATION_ID_HEADER` | `X-Request-ID` | Header de correlação HTTP |
+| `SME_OTEL_ENABLED` | `false` | Ativa tracing OpenTelemetry |
+| `SME_LOG_QUEUE` | vazio | Ativa o provider de fila quando definida |
 
 `URL_BANCO_PROGRAMAS` padrão (aponta para o container do MS-ETL):
 ```
@@ -141,9 +151,33 @@ curl -H "X-API-Key: dev-key-default" \
   http://localhost:8001/api/pap/ano-corrente
 ```
 
-> A autenticação cross-service via Transition Gateway (proposta com
-> Sidecar) é escopo futuro. Hoje a autenticação é apenas a chave estática
-> usada para acesso direto ao Swagger e validação de contrato.
+O SME Sidecar SDK não altera o contrato de autenticação. A API Key continua
+sendo validada pelo microsserviço e usada pelo Transition Gateway nas
+chamadas entre serviços.
+
+---
+
+## Observabilidade e correlação
+
+O runtime do SME Sidecar SDK é inicializado pelo `CoreConfig` antes da
+primeira requisição. O middleware da SDK:
+
+- reutiliza ou gera o `X-Request-ID`;
+- devolve o identificador na resposta;
+- registra método, caminho, status e duração em log estruturado;
+- continua o trace recebido quando OpenTelemetry está habilitado.
+
+O tracing permanece desabilitado no ambiente local de exemplo. Habilite
+`SME_OTEL_ENABLED` somente com um endpoint OTLP acessível pelo container.
+O envio de logs ao RabbitMQ é opcional e só é ativado quando
+`SME_LOG_QUEUE` possui valor; stdout permanece como saída principal.
+
+As opções de timeout, retry e circuit breaker passam a atuar quando o
+serviço utiliza os clientes HTTP da SDK. Atualmente o MS ProgramasEdu não
+realiza chamadas HTTP de saída.
+
+Não registre API Keys, documentos pessoais, payloads completos ou outros
+dados sensíveis nos logs e spans.
 
 ---
 

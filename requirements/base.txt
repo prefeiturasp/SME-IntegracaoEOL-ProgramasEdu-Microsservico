@@ -5,3 +5,4 @@ gunicorn>=21.2,<23
 django-db-connection-pool>=1.2,<2
 psycopg2-binary>=2.9,<3
 orjson>=3.10.0
+sme-sidecar-sdk @ git+https://github.com/prefeiturasp/SME-Sidecar-SDK.git@v1.0.0
