@@ -8,7 +8,7 @@ from typing import Any
 from unittest.mock import patch
 
 from django.http import StreamingHttpResponse
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -31,6 +31,19 @@ def _body_json(resp: Any) -> Any:
     if isinstance(resp, StreamingHttpResponse):
         return json.loads(b"".join(resp.streaming_content).decode("utf-8"))
     return resp.json()
+
+
+class BodyJsonTestCase(SimpleTestCase):
+    """Valida a leitura dos tipos de resposta usados pelos endpoints."""
+
+    def test_le_streaming_response(self) -> None:
+        """Consolida e desserializa os fragmentos de uma resposta streaming."""
+        resposta = StreamingHttpResponse(
+            iter([b'[{"codigo":', b"123}]"]),
+            content_type="application/json",
+        )
+
+        self.assertEqual(_body_json(resposta), [{"codigo": 123}])
 
 
 class AutenticacaoTestCase(TestCase):
@@ -163,6 +176,18 @@ class EP03VerificarAlunosTurmaProgramaPapTestCase(TestCase):
         resp = cliente.get(url, {"codigos_alunos": ["abc"]})
         self.assertEqual(resp.status_code, 400)
 
+    def test_ano_invalido_retorna_400(self) -> None:
+        """Verifica que ano_letivo não numérico retorna 400."""
+        cliente = _autenticado()
+        url = reverse(
+            "verificar-se-alunos-sao-turma-programa-pap",
+            kwargs={"ano_letivo": "abc"},
+        )
+
+        resp = cliente.get(url, {"codigos_alunos": ["6730137"]})
+
+        self.assertEqual(resp.status_code, 400)
+
 
 class EP04AlunosPapAnoCorrenteTestCase(TestCase):
     """Valida o endpoint de alunos PAP do ano corrente."""
@@ -222,6 +247,18 @@ class EP05AlunosPapPorAnoLetivoTestCase(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(body, [])
 
+    def test_ano_invalido_retorna_400(self) -> None:
+        """Verifica que ano_letivo não numérico retorna 400."""
+        cliente = _autenticado()
+        url = reverse(
+            "obter-alunos-pap-por-ano-letivo",
+            kwargs={"ano_letivo": "abc"},
+        )
+
+        resp = cliente.get(url)
+
+        self.assertEqual(resp.status_code, 400)
+
 
 class EP06ComponentesTurmasProgramaAlunoTestCase(TestCase):
     """Valida o endpoint de componentes das turmas de programa do aluno."""
@@ -244,6 +281,18 @@ class EP06ComponentesTurmasProgramaAlunoTestCase(TestCase):
             body[0]["nome_componente_curricular"], "PAP PROJETO COLABORATIVO"
         )
 
+    def test_codigo_aluno_invalido_retorna_400(self) -> None:
+        """Verifica que codigo_aluno não numérico retorna 400."""
+        cliente = _autenticado()
+        url = reverse(
+            "obter-componentes-curriculares-turmas-programa-aluno",
+            kwargs={"codigo_aluno": "abc", "ano_letivo": "2026"},
+        )
+
+        resp = cliente.get(url)
+
+        self.assertEqual(resp.status_code, 400)
+
 
 class EP07DadosSrmPaeeColaborativoTestCase(TestCase):
     """Valida o endpoint de dados SRM/PAEE colaborativo do aluno."""
@@ -265,6 +314,18 @@ class EP07DadosSrmPaeeColaborativoTestCase(TestCase):
         self.assertEqual(item["codigo_escola"], "092959")
         self.assertEqual(item["turno"], "Tarde")
         self.assertEqual(item["situacao_matricula"], "1")
+
+    def test_codigo_aluno_invalido_retorna_400(self) -> None:
+        """Verifica que codigo_aluno não numérico retorna 400."""
+        cliente = _autenticado()
+        url = reverse(
+            "obter-dados-srm-paee-colaborativo",
+            kwargs={"codigo_aluno": "abc"},
+        )
+
+        resp = cliente.get(url)
+
+        self.assertEqual(resp.status_code, 400)
 
 
 class EP08TurmasProgramaTestCase(TestCase):
@@ -289,3 +350,18 @@ class EP08TurmasProgramaTestCase(TestCase):
         resp = cliente.post(url, [], format="json")
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.json(), [])
+
+    def test_aceita_lista_encapsulada(self) -> None:
+        """Verifica o formato de objeto também aceito pelo serializer."""
+        seed_turmas()
+        cliente = _autenticado()
+        url = reverse("obter-turmas-programa")
+
+        resp = cliente.post(
+            url,
+            {"codigos_turmas": ["3082743", "9999999"]},
+            format="json",
+        )
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json(), ["3082743"])
