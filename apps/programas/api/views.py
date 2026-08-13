@@ -24,7 +24,7 @@ _TAG_TURMAS = ["Programas — Turmas"]
 
 
 def _to_int(valor: str, nome_param: str) -> int:
-    """Converte um path param para inteiro.
+    """Converta um path param para inteiro.
 
     Args:
         valor: Valor recebido na URL.

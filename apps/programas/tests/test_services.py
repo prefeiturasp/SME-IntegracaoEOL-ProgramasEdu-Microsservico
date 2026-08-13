@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.test import TestCase
 
@@ -206,6 +206,60 @@ class ListarAlunosPapPorAnoTestCase(TestCase):
         self.assertEqual(resultado, [])
 
 
+class ConsultarAlunosPapJsonPostgresqlTestCase(TestCase):
+    """Valida a serialização otimizada executada diretamente no PostgreSQL."""
+
+    @patch("apps.programas.services.connection")
+    def test_consulta_tabela_atual_e_codifica_texto(
+        self, connection_mock: MagicMock
+    ) -> None:
+        """Executa a consulta atual e converte o JSON textual para bytes."""
+        connection_mock.vendor = "postgresql"
+        cursor = connection_mock.cursor.return_value.__enter__.return_value
+        cursor.fetchone.return_value = ('[{"codigo_aluno":6730137}]',)
+
+        resultado = services._consultar_alunos_pap_json(ano_letivo=2026)
+
+        cursor.execute.assert_called_once_with(
+            services._SQL_ALUNOS_PAP_ATUAL,
+            {"ano_letivo": 2026},
+        )
+        self.assertEqual(resultado, b'[{"codigo_aluno":6730137}]')
+
+    @patch("apps.programas.services.connection")
+    def test_consulta_historico_e_preserva_bytes(
+        self, connection_mock: MagicMock
+    ) -> None:
+        """Executa a consulta histórica e preserva um resultado em bytes."""
+        connection_mock.vendor = "postgresql"
+        cursor = connection_mock.cursor.return_value.__enter__.return_value
+        cursor.fetchone.return_value = (b"[]",)
+
+        resultado = services._consultar_alunos_pap_json(
+            ano_letivo=2025,
+            historico=True,
+        )
+
+        cursor.execute.assert_called_once_with(
+            services._SQL_ALUNOS_PAP_HISTORICO,
+            {"ano_letivo": 2025},
+        )
+        self.assertEqual(resultado, b"[]")
+
+    @patch("apps.programas.services.connection")
+    def test_retorna_array_vazio_quando_consulta_nao_traz_linha(
+        self, connection_mock: MagicMock
+    ) -> None:
+        """Normaliza a ausência de linha para um array JSON vazio."""
+        connection_mock.vendor = "postgresql"
+        cursor = connection_mock.cursor.return_value.__enter__.return_value
+        cursor.fetchone.return_value = None
+
+        resultado = services._consultar_alunos_pap_json(ano_letivo=2026)
+
+        self.assertEqual(resultado, b"[]")
+
+
 class ListarComponentesTurmasAlunoTestCase(TestCase):
     """Valida a listagem de componentes das turmas do aluno."""
 
@@ -242,6 +296,39 @@ class ObterDadosSrmPaeeAlunoTestCase(TestCase):
         seed_matriculas()
         resultado = services.obter_dados_srm_paee_aluno(codigo_aluno=6730137)
         self.assertEqual(resultado, [])
+
+    @patch("apps.programas.services.TurmaPrograma")
+    @patch("apps.programas.services.MatriculaTurmaPrograma")
+    def test_converte_data_matricula_para_datetime(
+        self,
+        matricula_model_mock: MagicMock,
+        turma_model_mock: MagicMock,
+    ) -> None:
+        """Converte uma data sem horário antes de montar o contrato."""
+        matriculas = [
+            {
+                "codigo_aluno": 5285836,
+                "codigo_turma": 3105288,
+                "codigo_ue": "092959",
+                "codigo_componente_curricular": 1030,
+                "nome_componente_curricular": "SRM",
+                "codigo_situacao_matricula": 1,
+                "data_matricula": date(2026, 2, 1),
+            }
+        ]
+        matricula_model_mock.objects.filter.return_value.values.return_value.order_by.return_value = (  # noqa: E501
+            matriculas
+        )
+        turma_model_mock.objects.filter.return_value.values.return_value = [
+            {"codigo_turma": 3105288, "descricao_turno": "Tarde"}
+        ]
+
+        resultado = services.obter_dados_srm_paee_aluno(codigo_aluno=5285836)
+
+        self.assertEqual(
+            resultado[0].data_matricula,
+            datetime(2026, 2, 1),
+        )
 
 
 class FiltrarCodigosQueSaoTurmaProgramaTestCase(TestCase):

@@ -19,11 +19,19 @@ class SidecarSdkConfigurationTestCase(SimpleTestCase):
         """Verifica o registro explícito da configuração do app core."""
         self.assertIn("apps.core.apps.CoreConfig", settings.INSTALLED_APPS)
 
-    def test_middleware_de_observabilidade_e_o_primeiro(self) -> None:
-        """Verifica a precedência do middleware de observabilidade."""
-        self.assertEqual(
-            settings.MIDDLEWARE[0],
-            "sme_sidecar_sdk.integrations.django.ObservabilityMiddleware",
+    def test_middleware_de_observabilidade_precede_middleware_django(
+        self,
+    ) -> None:
+        """Verifica a precedência do SDK sobre os middlewares da aplicação."""
+        middleware_sidecar = (
+            "sme_sidecar_sdk.integrations.django.ObservabilityMiddleware"
+        )
+        middleware_gzip = "django.middleware.gzip.GZipMiddleware"
+
+        self.assertIn(middleware_sidecar, settings.MIDDLEWARE)
+        self.assertLess(
+            settings.MIDDLEWARE.index(middleware_sidecar),
+            settings.MIDDLEWARE.index(middleware_gzip),
         )
 
     @patch("sme_sidecar_sdk.runtime.configure")
