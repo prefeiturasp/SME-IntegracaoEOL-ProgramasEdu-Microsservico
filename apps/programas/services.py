@@ -7,7 +7,6 @@ from typing import Any
 
 import orjson
 from django.db import connection
-from django.db.models import QuerySet
 from django.utils import timezone
 
 from apps.programas.enums import (

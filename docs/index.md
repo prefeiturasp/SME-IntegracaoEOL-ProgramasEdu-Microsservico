@@ -4,6 +4,10 @@ O microsserviço `SME-IntegracaoEOL-ProgramasEdu-Microsservico` é uma aplicaç�
 
 O serviço opera em modo *read-only* sobre o banco `programas_db` (todos os models declaram `Meta.managed = False`) e responde aos contratos definidos pela SME, preservando caminhos, parâmetros, códigos de status e cabeçalhos (autenticação por `X-API-Key`).
 
+O SME Sidecar SDK padroniza os logs estruturados, a correlação por
+`X-Request-ID` e o tracing OpenTelemetry. O runtime é iniciado no app `core`
+e o middleware de observabilidade precede as demais camadas Django.
+
 ## Escopo e Arquitetura
 
 Este microsserviço é uma unidade autônoma de leitura: recebe requisições HTTP, consulta o banco relacional e devolve a resposta no formato esperado pelos consumidores. Não executa rotinas de ingestão, transformação ou orquestração — sua única responsabilidade é servir os contratos de Programas Educacionais a partir do estado atual do banco.

@@ -26,6 +26,7 @@ class TestUsuarioApiKey(TestCase):
         self.assertEqual(usuario.username, "api_key_user")
         self.assertTrue(usuario.is_authenticated)
         self.assertTrue(usuario.is_active)
+        self.assertEqual(str(usuario), "api_key_user")
 
     def test_campos_customizados(self):
         """Verifica os valores customizados do usuário de API key."""

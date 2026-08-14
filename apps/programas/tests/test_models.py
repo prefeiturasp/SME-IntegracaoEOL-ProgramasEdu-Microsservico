@@ -16,11 +16,12 @@ from apps.programas.models import (
     AlunoPapAnoLetivoHistorico,
     ComponenteCurricularPrograma,
     MatriculaTurmaPrograma,
+    MatriculaTurmaProgramaHistorico,
     TipoPrograma,
     TurmaPrograma,
     TurmaProgramaComponenteCurricular,
 )
-from apps.programas.tests.helpers import agora
+from apps.programas.tests.helpers import agora, seed_tipos
 
 
 class TipoProgramaTestCase(TestCase):
@@ -38,6 +39,16 @@ class TipoProgramaTestCase(TestCase):
     def test_db_table(self) -> None:
         """Verifica o nome da tabela mapeada."""
         self.assertEqual(TipoPrograma._meta.db_table, "tipo_programa")
+
+    def test_seed_cria_tipos_pap_e_paee(self) -> None:
+        """Verifica os tipos de programa usados nos cenários integrados."""
+        seed_tipos()
+
+        self.assertEqual(TipoPrograma.objects.count(), 2)
+        self.assertSetEqual(
+            set(TipoPrograma.objects.values_list("categoria", flat=True)),
+            {CategoriaPrograma.PAP, CategoriaPrograma.PAEE},
+        )
 
 
 class ComponenteCurricularProgramaTestCase(TestCase):
@@ -117,6 +128,25 @@ class MatriculaTurmaProgramaTestCase(TestCase):
         self.assertIn("1770", resultado)
 
 
+class MatriculaTurmaProgramaHistoricoTestCase(TestCase):
+    """Valida a representação da matrícula histórica de programa."""
+
+    def test_str(self) -> None:
+        """Verifica que a string identifica aluno, turma e histórico."""
+        matricula = MatriculaTurmaProgramaHistorico(
+            codigo_aluno=6730137,
+            codigo_turma=3082743,
+            codigo_componente_curricular=1770,
+        )
+
+        resultado = str(matricula)
+
+        self.assertIn("6730137", resultado)
+        self.assertIn("3082743", resultado)
+        self.assertIn("1770", resultado)
+        self.assertIn("histórico", resultado)
+
+
 class AlunoPapAnoLetivoTestCase(TestCase):
     """Valida representação e mapeamento do model AlunoPapAnoLetivo."""
 
@@ -142,7 +172,7 @@ class AlunoPapAnoLetivoTestCase(TestCase):
 
 
 class AlunoPapAnoLetivoHistoricoTestCase(TestCase):
-    """Valida representação e mapeamento do model AlunoPapAnoLetivoHistorico."""
+    """Valida representação e mapeamento do aluno PAP histórico."""
 
     def test_str_e_db_table(self) -> None:
         """Verifica a string amigável e o mapeamento read-only do histórico."""
