@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "SME-SGP-MS-Programas"
-version = "0.1.0"
+version = "1.0.0"
 description = "Microsserviço mock de Programas — SGP EOL"
 readme = "README.md"
 requires-python = ">=3.12"
